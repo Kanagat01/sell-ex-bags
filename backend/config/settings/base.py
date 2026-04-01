@@ -1,3 +1,4 @@
+from datetime import timedelta
 import environ
 from pathlib import Path
 
@@ -92,7 +93,6 @@ REST_FRAMEWORK = {
 }
 
 # JWT
-from datetime import timedelta
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=8),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -105,9 +105,8 @@ CELERY_RESULT_BACKEND = env("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 
-# SMS 
+# SMS
 SMS_INT_API_KEY = env("SMS_INT_API_KEY", default="")
-SMS_INT_SIGN = env("SMS_INT_SIGN", default="")
 
 # Email
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
