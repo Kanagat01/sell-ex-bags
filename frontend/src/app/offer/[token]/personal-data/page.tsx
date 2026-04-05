@@ -49,7 +49,7 @@ export default function PersonalDataPage() {
   }
 
   return (
-    <div className="flex flex-col gap-8 max-w-2xl">
+    <div className="flex flex-col gap-8 max-w-2xl px-6 py-6 mx-auto">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-medium">Персональные данные</h1>
         <p className="text-sm text-neutral-500">

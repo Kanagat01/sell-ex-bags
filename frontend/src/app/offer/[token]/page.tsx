@@ -55,7 +55,7 @@ export default function OfferPage() {
   if (!offer) return null
 
   return (
-    <div className="flex flex-col gap-8 max-w-lg mx-auto">
+    <div className="flex flex-col gap-8 px-6 py-6 max-w-lg mx-auto">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-medium">Предложение по вашей заявке</h1>
         <p className="text-sm text-neutral-500">
