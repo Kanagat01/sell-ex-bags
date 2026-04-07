@@ -1,3 +1,4 @@
+{% load custom_filters %}
 <!doctype html>
 <html lang="ru">
   <head>
@@ -144,15 +145,17 @@
           style="font-size: 7pt; margin: 8pt 0 6pt"
         >
           <span>г. Москва</span>
-          <span>«__»__________ _____ г. </span>
+          <span>
+            «{{ contract_date|date:"d" }}» {{ contract_date|date:"E" }}
+            {{contract_date|date:"Y" }} г.
+          </span>
         </div>
         <div class="br"></div>
         <p>
           <span class="indent">Общество</span> с ограниченной ответственностью
           «Эксбэгс», в лице директора Иванец Арины Романовны, действующего на
           основании Устава, именуемое в дальнейшем «<b>Сторона 1</b>», с одной
-          стороны, и
-          <span class="highlight">Сорокина Наталья Владимировна</span>,
+          стороны, и <span class="highlight">{{ seller_fullname }}</span>,
           именуемый (-ая) в дальнейшем «<b>Сторона 2</b>», с другой стороны,
           именуемые в дальнейшем «Стороны», заключили настоящий договор, в
           дальнейшем «Договор», о нижеследующем:
@@ -173,18 +176,22 @@
           <div class="br"></div>
           <span class="indent">1.3.</span> Товары, передаваемые Стороной 2:
           <span class="highlight">
-            сумка женская Dio(r)evolution Flap Bag, цвет белый, серийный номер
-            не указан, в комплекте сумка, плечевой ремень, пыльник.
+            сумка женская {{ product_brand }} {{ product_model }}, в комплекте
+            сумка.
           </span>
           <div class="br"></div>
           <span class="indent">1.4.</span> Стоимость обмениваемого товара,
           передаваемого Стороной 1, составляет
-          <span class="highlight">280 000 (двести восемьдесят тысяч)</span>
+          <span class="highlight"
+            >{{ contract_amount }} ({{ contract_amount_words }})</span
+          >
           рублей, в том числе НДС.
           <div class="br"></div>
           <span class="indent">1.5.</span> Стоимость обмениваемого товара,
           передаваемого Стороной 2, составляет
-          <span class="highlight">280 000 (двести восемьдесят тысяч)</span>
+          <span class="highlight"
+            >{{ contract_amount }} ({{ contract_amount_words }})</span
+          >
           рублей. Таким образом, разница в стоимости обмениваемых товаров,
           подлежащая возмещению
           <span class="highlight">Стороной 2 Стороне 1</span>, составляет
@@ -341,32 +348,30 @@
               </div>
             </div>
           </div>
-          <div>
+          <div style="text-align: left">
             <div>
               <b>Сторона 2</b><br />
               <span class="highlight">
-                Явельская Софья Витальевна <br />
-                Дата рождения 13.07.1993 г.<br />
-                Место рождения гор. Усть-Илимск Иркутской обл.<br />
-                Паспорт 4518364995<br />
-                Выдан ОТДЕЛОМ УФМС РОССИИ ПО ГОР. МОСКВЕ ПО РАЙОНУ ОТРАДНОЕ
-                09.11.2017 г. <br />
-                Код подразделения 770-085<br />
-                Адрес г. Москва, ул. БОЛЬШАЯ БРОННАЯ, Д. 8, КВ.33<br />
-                ИНН 772984671210<br />
-                Номер счета 40817810900041870633<br />
-                АО «Тинькофф Банк»<br />
-                БИК 044525974<br />
-                Корр. счет 30101810145250000974<br />
-                +79636730015 <br />
-                Sofyayavelskaya@gmail.com
+                {{ seller_fullname }} <br />
+                Дата рождения {{ seller_dob }} г.<br />
+                Паспорт {{ seller_passport }}<br />
+                Выдан {{ seller_passport_issued_by }}
+                {{seller_passport_issued_date }} г. <br />
+                Адрес {{ seller_address }}<br />
+
+                {% if seller_inn %}ИНН {{ seller_inn }}<br />{% endif %} Номер
+                счета {{ payment_details }}<br />
+                {{ seller_phone }} <br />
+                {% if seller_email %}{{ seller_email }}{% endif %}
               </span>
             </div>
             <div style="display: flex; align-items: end">
-              <span style="text-decoration: underline"
-                >Подписан [дата/время] посредством СМС-подтверждения с номера
-                [телефон]</span
-              >/<span class="highlight">Явельская С.В.</span>
+              {% if signed_at %}<span style="text-decoration: underline"
+                >Подписан [{{ signed_at|date:"d.m.Y H:i" }}] посредством
+                СМС-подтверждения с номера [{{ seller_phone }}]</span
+              >{% else %}___________________{% endif %}/<span class="highlight"
+                >{{ seller_fullname|short_fio }}</span
+              >
             </div>
           </div>
         </div>
@@ -377,7 +382,8 @@
       <div class="br"></div>
       <div class="appendix-title">ПРИЛОЖЕНИЕ № 1</div>
       <p class="text-center mt-3" style="font-weight: 600">
-        к Договору мены № 04.29.1 от «29» апреля 2024 года
+        к Договору мены № __.__.__ от «{{ contract_date|date:"d" }}»
+        {{contract_date|date:"E" }} {{contract_date|date:"Y" }} года
       </p>
       <p class="text-center mt-3" style="font-weight: 600">
         АКТ приема-передачи товара
@@ -386,8 +392,8 @@
         <span class="indent">Общество</span> с ограниченной ответственностью
         «Эксбэгс», в лице директора Иванец Арины Романовны, действующего на
         основании Устава, именуемое в дальнейшем «Сторона 1», с одной стороны, и
-        <span class="highlight">Сорокина Наталья Владимировна</span>, именуемый
-        (-ая) в дальнейшем «Сторона 2», с другой стороны, именуемые в дальнейшем
+        <span class="highlight">{{ seller_fullname }}</span>, именуемый (-ая) в
+        дальнейшем «Сторона 2», с другой стороны, именуемые в дальнейшем
         «Стороны» подписали настоящий Акт приема-передачи о нижеследующем:
       </p>
       <p class="mt-3">
@@ -400,8 +406,8 @@
       <p class="mt-3">
         <span class="indent">1.2</span> Сторона 2 передает Стороне 1:
         <span class="highlight">
-          сумка женская Dio(r)evolution Flap Bag, цвет белый, серийный номер не
-          указан, в комплекте сумка, плечевой ремень, пыльник.
+          сумка женская {{ product_brand }} {{ product_model }}, в комплекте
+          сумка.
         </span>
       </p>
       <p class="mt-3">
@@ -431,10 +437,9 @@
           <p class="mt-3">От Стороны 2</p>
           <div class="mt-6"></div>
           <span class="mt-3">
-            <span style="text-decoration: underline"
-              >Подписан [дата/время] посредством СМС-подтверждения с номера
-              [телефон]</span
-            >/<span class="highlight">___________________</span>
+            ___________________/<span class="highlight"
+              >{{ seller_fullname|short_fio }}</span
+            >
           </span>
         </div>
       </div>

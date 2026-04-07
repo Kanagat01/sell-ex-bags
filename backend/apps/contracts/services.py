@@ -1,11 +1,13 @@
 import random
 import string
-from datetime import timedelta
 from io import BytesIO
+from decimal import Decimal
+from num2words import num2words
+from datetime import timedelta
 
+from django.utils import timezone
 from django.conf import settings
 from django.template.loader import render_to_string
-from django.utils import timezone
 
 from apps.applications.models import Application, ApplicationStatus
 from apps.notifications.tasks import send_contract_signed_notification
@@ -19,14 +21,29 @@ TEMPLATE_MAP = {
 }
 
 
+def amount_to_words(value: Decimal) -> str:
+    rubles = int(value)
+    kopeks = int((value - rubles) * 100)
+
+    words = num2words(rubles, lang="ru")
+
+    if kopeks == 0:
+        return words
+    else:
+        # убираем trailing 0 → 50 → 5
+        kopeks_str = str(kopeks).rstrip('0')
+        return f"{words} целых {kopeks_str} сотых"
+
+
 class ContractService:
 
     @staticmethod
     def generate(application: Application) -> Contract:
         """Генерация PDF договора из HTML шаблона"""
         from weasyprint import HTML
-        
+
         personal_data = application.personal_data
+        contract, _ = Contract.objects.get_or_create(application=application)
         template_name = TEMPLATE_MAP[application.format]
 
         context = {
@@ -34,23 +51,26 @@ class ContractService:
             "seller_passport": f"{personal_data.passport_series} {personal_data.passport_number}",
             "seller_passport_issued_by": personal_data.passport_issued_by,
             "seller_passport_date": personal_data.passport_issued_date.strftime("%d.%m.%Y"),
+            "seller_inn": personal_data.inn,
             "seller_dob": personal_data.date_of_birth.strftime("%d.%m.%Y"),
             "seller_address": personal_data.registration_address,
             "seller_phone": application.phone,
+            "seller_email": application.email,
             "product_brand": application.brand,
             "product_model": application.model,
             "product_size": application.size,
             "product_condition": application.get_condition_display(),
-            "contract_amount": application.offered_price,
-            "contract_date": timezone.now().strftime("%d.%m.%Y"),
+            "defects_description": application.defects_description,
+            "contract_amount": application.offered_price.normalize(),
+            "contract_amount_words": amount_to_words(application.offered_price),
+            "contract_date": application.contract.created_at,
             "payment_details": personal_data.payment_details,
+            "signed_at": application.contract.signed_at,
         }
 
         html_string = render_to_string(template_name, context)
         pdf_bytes = HTML(string=html_string).write_pdf()
-
-        contract, _ = Contract.objects.get_or_create(application=application)
-        filename = f"contract_{application.id}.pdf"
+        filename = f"contract_{application.pk}.pdf"
         contract.pdf_file.save(filename, BytesIO(pdf_bytes), save=True)
 
         return contract
@@ -121,9 +141,11 @@ class ContractService:
         contract.is_signed = True
         contract.signed_at = timezone.now()
         contract.signed_by_phone = sms_code.phone
-        contract.save(update_fields=["is_signed", "signed_at", "signed_by_phone"])
+        contract.save(update_fields=["is_signed",
+                      "signed_at", "signed_by_phone"])
 
         contract.application.status = ApplicationStatus.CONTRACT_SIGNED
         contract.application.save(update_fields=["status", "updated_at"])
 
+        ContractService.generate(contract.application)
         send_contract_signed_notification.delay(str(contract.application.id))

@@ -1,9 +1,16 @@
+import logging
 from celery import shared_task
 from django.conf import settings
 
 
+logger = logging.getLogger(__name__)
+
+
 @shared_task
 def send_offer_notification(application_id: str) -> None:
+    logger.info(
+        "send_offer_notification called with application_id=%s", application_id)
+
     from apps.applications.models import Application
     from apps.notifications.services.sms import SmsService
     from apps.notifications.services.email import EmailService
@@ -12,16 +19,16 @@ def send_offer_notification(application_id: str) -> None:
         "offer").get(id=application_id)
     offer_url = f"{settings.FRONTEND_URL}/offer/{application.offer.token}"
 
-    SmsService.send_offer_notification(
-        phone=application.phone,
-        brand=f"{application.brand} {application.model}",
-        amount=application.offered_price,
-        offer_url=offer_url,
-    )
     EmailService.send_offer_notification(
         email=application.email,
         brand=f"{application.brand} {application.model}",
         model=application.model,
+        amount=application.offered_price,
+        offer_url=offer_url,
+    )
+    SmsService.send_offer_notification(
+        phone=application.phone,
+        brand=f"{application.brand} {application.model}",
         amount=application.offered_price,
         offer_url=offer_url,
     )
@@ -35,16 +42,16 @@ def send_rejection_notification(application_id: str) -> None:
 
     application = Application.objects.get(id=application_id)
 
-    SmsService.send_rejection_notification(
-        phone=application.phone,
-        brand=application.brand,
-        reason=application.rejection_reason
-    )
     EmailService.send_rejection_notification(
         email=application.email,
         brand=application.brand,
         model=application.model,
         reason=application.rejection_reason,
+    )
+    SmsService.send_rejection_notification(
+        phone=application.phone,
+        brand=application.brand,
+        reason=application.rejection_reason
     )
 
 
