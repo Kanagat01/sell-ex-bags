@@ -1,6 +1,7 @@
 FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y \
+    ca-certificates \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
     libpangocairo-1.0-0 \
@@ -8,6 +9,8 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
+
+RUN python -m pip install --upgrade pip setuptools wheel
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 

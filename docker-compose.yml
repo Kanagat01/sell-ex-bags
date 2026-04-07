@@ -62,7 +62,7 @@ services:
     restart: always
     ports:
       - "80:80"
-      # - "443:443"
+      - "443:443"
     depends_on:
       - backend
       - frontend
@@ -70,6 +70,8 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - static_files:/app/staticfiles:ro
       - media_files:/app/media:ro
+      - /etc/letsencrypt/live/sell.ex-bags.ru/fullchain.pem:/certificate/fullchain.pem:ro
+      - /etc/letsencrypt/live/sell.ex-bags.ru/privkey.pem:/certificate/privkey.pem:ro
       # - ./nginx/logs:/var/log/nginx
 
 volumes:
