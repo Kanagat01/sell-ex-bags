@@ -19,7 +19,6 @@ class ApplicationCondition(models.TextChoices):
     EXCELLENT = "excellent", "Отличное"
     GOOD = "good", "Хорошее"
     SATISFACTORY = "satisfactory", "Удовлетворительное"
-    PARTS = "parts", "На запчасти"
 
 
 class Application(models.Model):
