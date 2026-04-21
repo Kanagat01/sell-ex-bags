@@ -67,15 +67,19 @@ export const useApplicationForm = () => {
   const onSubmit: SubmitHandler<ApplicationFormData> = async (data) => {
     if (!selectedFormat) return
 
-    await createApplication({
-      ...data,
-      format: selectedFormat,
-      size: data.size ?? "",
-      defects_description: data.defects_description ?? "",
-      email: data.email ?? "",
-    })
-
-    router.push("/application/success")
+    try {
+      await createApplication({
+        ...data,
+        format: selectedFormat,
+        size: data.size ?? "",
+        defects_description: data.defects_description ?? "",
+        email: data.email ?? "",
+      })
+      router.push("/application/success")
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } }
+      form.setError("root", { message: err.response?.data?.detail ?? "Ошибка при отправке заявки" })
+    }
   }
 
   return { form, onSubmit: form.handleSubmit(onSubmit) }

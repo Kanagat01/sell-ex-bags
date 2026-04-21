@@ -81,8 +81,8 @@ export default function HomePage() {
     <div className="flex flex-col">
 
       {/* Hero */}
-      <section className="relative min-h-130 flex items-center overflow-hidden bg-[url('/main-bg.png')] bg-cover bg-center"> 
-      {/* bg-[#bdbab3] md: */}
+      <section className="relative min-h-130 flex items-center overflow-hidden bg-[url('/main-bg.png')] bg-cover bg-center">
+        {/* bg-[#bdbab3] md: */}
         <div className="relative z-10 w-full max-w-6xl mx-auto px-6 sm:px-12 py-16 grid grid-cols-1 md:grid-cols-[9fr_3fr] gap-12 items-center">
           <div className="flex flex-col gap-15">
             <h1 className="text-3xl md:text-4xl font-medium leading-tight tracking-tight">
@@ -96,7 +96,7 @@ export default function HomePage() {
               className={
                 "inline-flex items-center justify-center " +
                 "max-w-lg py-4 border border-black rounded-sm " +
-                "text-[16px] uppercase tracking-widest " + 
+                "text-[16px] uppercase tracking-widest " +
                 "hover:bg-black hover:text-white transition-all duration-300"
               }
             >
@@ -134,27 +134,27 @@ export default function HomePage() {
 
         {/* Преимущества */}
         <section className="w-full bg-neutral-50 mb-9">
-            <h2 className="text-2xl font-medium tracking-tight text-center text-black mb-12">
-              Преимущества сотрудничества
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
-              <div className="flex flex-col gap-10">
-                {benefits.slice(0, 3).map((b) => (
-                  <div key={b.title} className="flex flex-col gap-3">
-                    <span className="text-sm font-medium text-black">{b.title}</span>
-                    <span className="text-sm text-neutral-500 leading-relaxed whitespace-pre-line">{b.text}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex flex-col gap-10">
-                {benefits.slice(3).map((b) => (
-                  <div key={b.title} className="flex flex-col gap-3">
-                    <span className="text-sm font-medium text-black">{b.title}</span>
-                    <span className="text-sm text-neutral-500 leading-relaxed whitespace-pre-line">{b.text}</span>
-                  </div>
-                ))}
-              </div>
+          <h2 className="text-2xl font-medium tracking-tight text-center text-black mb-12">
+            Преимущества сотрудничества
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+            <div className="flex flex-col gap-10">
+              {benefits.slice(0, 3).map((b) => (
+                <div key={b.title} className="flex flex-col gap-3">
+                  <span className="text-sm font-medium text-black">{b.title}</span>
+                  <span className="text-sm text-neutral-500 leading-relaxed whitespace-pre-line">{b.text}</span>
+                </div>
+              ))}
             </div>
+            <div className="flex flex-col gap-10">
+              {benefits.slice(3).map((b) => (
+                <div key={b.title} className="flex flex-col gap-3">
+                  <span className="text-sm font-medium text-black">{b.title}</span>
+                  <span className="text-sm text-neutral-500 leading-relaxed whitespace-pre-line">{b.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* Этапы */}
@@ -182,8 +182,8 @@ export default function HomePage() {
               href="/application/types"
               className={
                 "inline-flex items-center justify-center " +
-                "border-[0.8px] border-black rounded-sm " + 
-                "px-3.5 py-4 text-black text-sm text-center tracking-widest " + 
+                "border-[0.8px] border-black rounded-sm " +
+                "px-3.5 py-4 text-black text-sm text-center tracking-widest " +
                 "hover:bg-black hover:text-white transition-all duration-300"
               }
             >
@@ -195,19 +195,21 @@ export default function HomePage() {
               rel="noopener noreferrer"
               className={
                 "inline-flex items-center justify-center " +
-                "border-[0.8px] border-black rounded-sm " + 
-                "px-3.5 py-4 text-black text-sm text-center tracking-widest " + 
+                "border-[0.8px] border-black rounded-sm " +
+                "px-3.5 py-4 text-black text-sm text-center tracking-widest " +
                 "hover:bg-black hover:text-white transition-all duration-300"
               }
-              >
+            >
               Оформить заявку в Telegram-bot
             </a>
             <a
-              href="tel:"
+              href="https://t.me/+79623331133"
+              target="_blank"
+              rel="noopener noreferrer"
               className={
                 "inline-flex items-center justify-center " +
-                "border-[0.8px] border-black rounded-sm " + 
-                "px-3.5 py-4 text-black text-sm text-center tracking-widest " + 
+                "border-[0.8px] border-black rounded-sm " +
+                "px-3.5 py-4 text-black text-sm text-center tracking-widest " +
                 "hover:bg-black hover:text-white transition-all duration-300"
               }
             >
@@ -215,7 +217,7 @@ export default function HomePage() {
             </a>
           </div>
         </section>
-      </div> 
+      </div>
       {/* Размер комиссии */}
       <Modal isOpen={comissionModal} onClose={() => setComissionModal(false)}>
         <h6 className="text-center text-[15px] font-medium mb-4">Размер комиссии зависит от стоимости изделия:</h6>
@@ -230,9 +232,9 @@ export default function HomePage() {
                 { range: 'от 251.000 до 500.000', commission: 'комиссия 20%' },
                 { range: 'от 501.000 рублей', commission: 'комиссия составит 15%' },
               ].map((item, i) => (
-                <tr 
-                  key={i} 
-                  className="text-[15px] font-light border-b-[0.5px] border-neutral-500 last:border-b-0"   
+                <tr
+                  key={i}
+                  className="text-[15px] font-light border-b-[0.5px] border-neutral-500 last:border-b-0"
                 >
                   <td className="p-2 text-center border-r-[0.5px] border-neutral-500 last:border-r-0">
                     {item.range}
@@ -249,7 +251,7 @@ export default function HomePage() {
       {/* Бренд-лист */}
       <Modal isOpen={brandList} onClose={() => setBrandList(false)}>
         <h6 className="text-center text-[15px] font-medium mb-4">Бренд-лист (ex)bags</h6>
-        <div className="grid grid-cols-2 gap-x-12 px-7 text-[15px] font-light">              
+        <div className="grid grid-cols-2 gap-x-12 px-7 text-[15px] font-light">
           {/* Первая колонка */}
           <div className="flex flex-col gap-3">
             {firstColumn.map((brand, index) => (

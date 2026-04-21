@@ -38,14 +38,20 @@ export default function PersonalDataPage() {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<PersonalDataForm>({
     resolver: zodResolver(schema) as Resolver<PersonalDataForm>,
   })
 
   const onSubmit: SubmitHandler<PersonalDataForm> = async (data) => {
-    const response = await submitPersonalData(token, data as PersonalDataPayload)
-    router.push(`/sign/${response.sign_token}`)
+    try {
+      const response = await submitPersonalData(token, data as PersonalDataPayload)
+      router.push(`/sign/${response.sign_token}`)
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } }
+      setError("root", { message: err.response?.data?.detail ?? "Ошибка при отправке данных" })
+    }
   }
 
   return (
