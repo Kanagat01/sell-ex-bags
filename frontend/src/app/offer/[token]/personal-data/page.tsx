@@ -26,7 +26,22 @@ const schema = z.object({
     .regex(/^\d{12}$/, "ИНН — 12 цифр")
     .optional()
     .or(z.literal("")),
-  payment_details: z.string().optional(),
+  account_number: z
+    .string()
+    .regex(/^\d{20}$/, "Номер счёта — 20 цифр")
+    .optional()
+    .or(z.literal("")),
+  bank_name: z.string().optional(),
+  bik: z
+    .string()
+    .regex(/^\d{9}$/, "БИК — 9 цифр")
+    .optional()
+    .or(z.literal("")),
+  correspondent_account: z
+    .string()
+    .regex(/^\d{20}$/, "Корр. счёт — 20 цифр")
+    .optional()
+    .or(z.literal("")),
 })
 
 type PersonalDataForm = z.infer<typeof schema>
@@ -144,14 +159,44 @@ export default function PersonalDataPage() {
             error={errors.inn?.message}
             {...register("inn")}
           />
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <h2 className="font-medium">Банковские реквизиты для выплаты</h2>
+          <p className="text-sm text-neutral-500 -mt-2">Для форматов Выкуп и Реализация</p>
 
           <Input
-            label="Реквизиты для выплаты"
-            placeholder="Номер карты или расчётный счёт"
-            hint="Для форматов Выкуп и Реализация"
-            error={errors.payment_details?.message}
-            {...register("payment_details")}
+            label="Номер счёта"
+            placeholder="40817810000000000000"
+            maxLength={20}
+            error={errors.account_number?.message}
+            {...register("account_number")}
           />
+
+          <Input
+            label="Полное наименование банка"
+            placeholder="ПАО Сбербанк"
+            error={errors.bank_name?.message}
+            {...register("bank_name")}
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="БИК"
+              placeholder="044525225"
+              maxLength={9}
+              error={errors.bik?.message}
+              {...register("bik")}
+            />
+
+            <Input
+              label="Корреспондентский счёт"
+              placeholder="30101810400000000225"
+              maxLength={20}
+              error={errors.correspondent_account?.message}
+              {...register("correspondent_account")}
+            />
+          </div>
         </div>
 
         {errors.root && <ErrorMessage message={errors.root.message ?? ""} />}

@@ -10,7 +10,8 @@ class OfferService:
     def get_valid_offer(token: str) -> Offer:
         """Получить активное предложение по токену"""
         try:
-            offer = Offer.objects.select_related("application").get(token=token)
+            offer = Offer.objects.select_related(
+                "application").get(token=token)
         except Offer.DoesNotExist:
             raise ValueError("Предложение не найдено")
 
@@ -32,6 +33,7 @@ class OfferService:
         offer.save(update_fields=["is_used"])
 
     @staticmethod
+    @transaction.atomic
     def decline(offer: Offer) -> None:
         """Продавец отклоняет предложение"""
         offer.application.status = ApplicationStatus.DECLINED

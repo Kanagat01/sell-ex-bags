@@ -17,5 +17,8 @@ export interface PersonalDataPayload {
   passport_issued_date: string
   registration_address: string
   inn?: string
-  payment_details?: string
+  account_number?: string
+  bank_name?: string
+  bik?: string
+  correspondent_account?: string
 }

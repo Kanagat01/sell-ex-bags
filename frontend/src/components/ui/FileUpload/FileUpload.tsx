@@ -47,7 +47,6 @@ export const FileUpload = ({ onChange, error }: FileUploadProps) => {
           onChange={handleInput}
         />
         <label htmlFor="photo-upload" className="flex flex-col items-center gap-2 cursor-pointer">
-          <span className="text-2xl">📷</span>
           <span className="text-sm font-medium">Перетащите фото или нажмите для выбора</span>
           <span className="text-xs text-neutral-500">
             JPG, PNG · до 10 МБ · от {PHOTO_MIN_COUNT} до {PHOTO_MAX_COUNT} фото

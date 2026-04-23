@@ -9,6 +9,7 @@ class Contract(models.Model):
         related_name="contract",
     )
     sign_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    contract_number = models.CharField(max_length=20, blank=True)
     pdf_file = models.FileField(upload_to="contracts/%Y/%m/", blank=True)
 
     # Данные подписания

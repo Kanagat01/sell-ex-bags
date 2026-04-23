@@ -156,7 +156,7 @@
     <div class="main-page">
       <div>
         <p class="text-center" style="font-size: 7pt; font-weight: 600">
-          ДОГОВОР КОМИССИИ № __.__.__
+          ДОГОВОР КОМИССИИ № {{ contract_number }}
         </p>
         <div
           class="flex justify-between"
@@ -424,8 +424,12 @@
               {{seller_passport_issued_date }} г.<br />
               Адрес {{ seller_address }}<br />
               {% if seller_inn %}ИНН {{ seller_inn }}<br />
-              {% endif %} Номер счета {{ payment_details }}<br />
-              {{ seller_phone }} <br />
+              {% endif %} {% if account_number %}Номер счёта
+              {{account_number}}<br />
+              {{ bank_name }}<br />
+              БИК {{ bik }}<br />
+              Корр. счёт {{ correspondent_account }}<br />
+              {% endif %} {{ seller_phone }} <br />
               {% if seller_email %}{{ seller_email }}{% endif %}
             </div>
             <div style="display: flex; align-items: end">
@@ -433,8 +437,8 @@
               <span style="text-decoration: underline"
                 >Подписан [{{ signed_at|date:"d.m.Y H:i" }}] посредством
                 СМС-подтверждения с номера [{{ seller_phone }}]</span
-              >{% else %}___________________{% endif
-              %}/{{seller_fullname|short_fio }}
+              >{% else %}___________________
+              {%endif%}/{{seller_fullname|short_fio }}
             </div>
           </div>
         </div>
@@ -445,7 +449,8 @@
       <div class="appendix-title">ПРИЛОЖЕНИЕ № 1</div>
       <p class="text-center mt-3">АКТ приема-передачи товара</p>
       <p class="text-center mt-3">
-        по договору комиссии № __.__.__ от {{ contract_date|date:"d.m.Y" }} г.
+        по договору комиссии № {{ contract_number }} от
+        {{contract_date|date:"d.m.Y" }} г.
       </p>
       <div class="mt-6"></div>
       <p class="flex justify-between" style="padding-right: 9mm">
@@ -498,7 +503,8 @@
         <div class="appendix-title">ПРИЛОЖЕНИЕ № 2</div>
         <p class="text-center mt-3">АКТ возврата товара</p>
         <p class="text-center mt-3">
-          по договору комиссии № __.__.__ от {{ contract_date|date:"d.m.Y" }} г.
+          по договору комиссии № {{ contract_number }} от
+          {{contract_date|date:"d.m.Y" }} г.
         </p>
         <p class="indent mt-3">Мы, нижеперечисленные:</p>
         <p class="mt-3">

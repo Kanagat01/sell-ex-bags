@@ -157,7 +157,9 @@
   <body>
     <div class="main-page">
       <div>
-        <p class="text-center mb-2">договор купли-продажи № __.__.__</p>
+        <p class="text-center mb-2">
+          договор купли-продажи № {{ contract_number }}
+        </p>
         <div class="flex justify-between mb-2">
           <span>г. Москва</span>
           <span>
@@ -373,8 +375,12 @@
                   {{seller_passport_issued_date }} г.<br />
                   адрес регистрации {{ seller_address }}<br />
                   {% if seller_inn %}ИНН {{ seller_inn }}<br />
-                  {% endif %} cчет получателя {{ payment_details }}<br />
-                  контактные данные: {{ seller_phone }} <br />
+                  {% endif %} {% if account_number %}счёт получателя
+                  {{account_number }}<br />
+                  {{ bank_name }}<br />
+                  БИК {{ bik }}<br />
+                  корр. счёт {{ correspondent_account }}<br />
+                  {% endif %} контактные данные: {{ seller_phone }} <br />
                   {% if seller_email %}{{ seller_email }}{% endif %}
                 </p>
               </div>
@@ -397,8 +403,8 @@
       <div class="appendix-title">ПРИЛОЖЕНИЕ № 1</div>
       <p class="text-center mt-3">АКТ приема-передачи товара</p>
       <p class="text-center mt-3">
-        по договору купли-продажи № __.__.__ от {{ contract_date|date:"d.m.Y" }}
-        г.
+        по договору купли-продажи № {{ contract_number }} от
+        {{contract_date|date:"d.m.Y" }} г.
       </p>
       <div class="mt-6"></div>
       <p class="flex justify-between" style="padding-right: 9mm">
@@ -455,8 +461,8 @@
         <div class="appendix-title">ПРИЛОЖЕНИЕ № 2</div>
         <p class="text-center mt-3">АКТ возврата товара</p>
         <p class="text-center mt-3">
-          по договору купли-продажи № __.__.__ от {{contract_date|date:"d.m.Y"}}
-          г.
+          по договору купли-продажи № {{ contract_number }} от
+          {{contract_date|date:"d.m.Y"}} г.
         </p>
         <p class="indent-2 mt-3">Мы, нижеперечисленные:</p>
         <p class="mt-3">

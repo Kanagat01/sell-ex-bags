@@ -49,7 +49,10 @@ class PersonalData(models.Model):
     passport_issued_date = models.DateField()
     registration_address = models.TextField()
     inn = models.CharField(max_length=12, blank=True)
-    payment_details = models.CharField(max_length=30, blank=True)
+    account_number = models.CharField(max_length=20, blank=True)
+    bank_name = models.CharField(max_length=500, blank=True)
+    bik = models.CharField(max_length=9, blank=True)
+    correspondent_account = models.CharField(max_length=20, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

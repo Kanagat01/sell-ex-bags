@@ -38,12 +38,29 @@ def amount_to_words(value: Decimal) -> str:
 class ContractService:
 
     @staticmethod
+    def _generate_contract_number(contract: "Contract") -> str:
+        created = contract.created_at
+        day_start = created.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+        sequence = Contract.objects.filter(
+            created_at__gte=day_start,
+            created_at__lt=day_end,
+            id__lte=contract.id,
+        ).count()
+        return f"{created.month}-{created.day}-{sequence}"
+
+    @staticmethod
     def generate(application: Application) -> Contract:
         """Генерация PDF договора из HTML шаблона"""
         from weasyprint import HTML
 
         personal_data = application.personal_data
         contract, _ = Contract.objects.get_or_create(application=application)
+
+        if not contract.contract_number:
+            contract.contract_number = ContractService._generate_contract_number(contract)
+            contract.save(update_fields=["contract_number"])
+
         template_name = TEMPLATE_MAP[application.format]
 
         context = {
@@ -64,7 +81,11 @@ class ContractService:
             "contract_amount": application.offered_price.normalize(),
             "contract_amount_words": amount_to_words(application.offered_price),
             "contract_date": application.contract.created_at,
-            "payment_details": personal_data.payment_details,
+            "contract_number": contract.contract_number,
+            "account_number": personal_data.account_number,
+            "bank_name": personal_data.bank_name,
+            "bik": personal_data.bik,
+            "correspondent_account": personal_data.correspondent_account,
             "signed_at": application.contract.signed_at,
         }
 

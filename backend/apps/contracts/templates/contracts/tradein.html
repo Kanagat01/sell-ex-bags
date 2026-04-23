@@ -138,7 +138,7 @@
     <div class="main-page">
       <div>
         <p class="text-center" style="font-weight: 600">
-          Договор мены № __.__.__
+          Договор мены № {{ contract_number }}
         </p>
         <div
           class="flex justify-between"
@@ -359,9 +359,13 @@
                 {{seller_passport_issued_date }} г. <br />
                 Адрес {{ seller_address }}<br />
 
-                {% if seller_inn %}ИНН {{ seller_inn }}<br />{% endif %} Номер
-                счета {{ payment_details }}<br />
-                {{ seller_phone }} <br />
+                {% if seller_inn %}ИНН {{ seller_inn }}
+                <br />{% endif %} {% if account_number %}Номер счёта
+                {{account_number}}<br />
+                {{ bank_name }}<br />
+                БИК {{ bik }}<br />
+                Корр. счёт {{ correspondent_account }}<br />
+                {% endif %} {{ seller_phone }} <br />
                 {% if seller_email %}{{ seller_email }}{% endif %}
               </span>
             </div>
@@ -382,7 +386,7 @@
       <div class="br"></div>
       <div class="appendix-title">ПРИЛОЖЕНИЕ № 1</div>
       <p class="text-center mt-3" style="font-weight: 600">
-        к Договору мены № __.__.__ от «{{ contract_date|date:"d" }}»
+        к Договору мены № {{ contract_number }} от «{{contract_date|date:"d"}}»
         {{contract_date|date:"E" }} {{contract_date|date:"Y" }} года
       </p>
       <p class="text-center mt-3" style="font-weight: 600">

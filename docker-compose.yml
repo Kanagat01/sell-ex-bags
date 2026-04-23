@@ -6,14 +6,10 @@ services:
       - ./backend/.env
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
 
   redis:
     image: redis:7-alpine
     restart: always
-    ports:
-      - "6379:6379"
 
   backend:
     build: ./backend
@@ -23,8 +19,8 @@ services:
     depends_on:
       - db
       - redis
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     volumes:
       - ./backend/apps:/app/apps
       - ./backend/config:/app/config
@@ -51,8 +47,8 @@ services:
     restart: always
     env_file:
       - ./frontend/.env
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules

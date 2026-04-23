@@ -31,7 +31,10 @@ class PersonalDataSerializer(serializers.ModelSerializer):
             "passport_issued_date",
             "registration_address",
             "inn",
-            "payment_details",
+            "account_number",
+            "bank_name",
+            "bik",
+            "correspondent_account",
         ]
 
     def validate_passport_series(self, value: str) -> str:

@@ -2,10 +2,12 @@ from django.db.models import QuerySet
 from rest_framework import status
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from django.db import transaction
 from apps.notifications.tasks import send_new_application_notification
 
 from .models import Application, ApplicationStatus
@@ -28,7 +30,7 @@ class CreateApplicationView(APIView):
         serializer = CreateApplicationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         application = serializer.save()
-        send_new_application_notification.delay(application.id)
+        transaction.on_commit(lambda: send_new_application_notification.delay(application.id))
         return Response(
             {"detail": "Заявка принята! Мы рассмотрим её и свяжемся с вами в ближайшее время."},
             status=status.HTTP_201_CREATED,
@@ -38,6 +40,7 @@ class CreateApplicationView(APIView):
 class AdminApplicationListView(ListAPIView):
     """GET /api/admin/applications — список заявок для админа"""
 
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdminUser]
     serializer_class = ApplicationListSerializer
 
@@ -65,6 +68,7 @@ class AdminApplicationListView(ListAPIView):
 class AdminApplicationDetailView(RetrieveAPIView):
     """GET /api/admin/applications/:id — детали заявки"""
 
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdminUser]
     serializer_class = ApplicationDetailSerializer
     queryset = Application.objects.prefetch_related("photos")
@@ -73,6 +77,7 @@ class AdminApplicationDetailView(RetrieveAPIView):
 class AdminApproveApplicationView(APIView):
     """POST /api/admin/applications/:id/approve"""
 
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdminUser]
 
     def post(self, request: Request, pk: str) -> Response:
@@ -94,6 +99,7 @@ class AdminApproveApplicationView(APIView):
 class AdminRejectApplicationView(APIView):
     """POST /api/admin/applications/:id/reject"""
 
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdminUser]
 
     def post(self, request: Request, pk: str) -> Response:
@@ -115,6 +121,7 @@ class AdminRejectApplicationView(APIView):
 class AdminContractPreviewView(APIView):
     """GET /api/admin/applications/:id/contract/"""
 
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdminUser]
 
     def get(self, request: Request, pk: int) -> Response:
