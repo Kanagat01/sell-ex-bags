@@ -39,7 +39,7 @@ class ContractService:
 
     @staticmethod
     def _generate_contract_number(contract: "Contract") -> str:
-        created = contract.created_at
+        created = timezone.localtime(contract.created_at)
         day_start = created.replace(hour=0, minute=0, second=0, microsecond=0)
         day_end = day_start + timedelta(days=1)
         sequence = Contract.objects.filter(
