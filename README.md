@@ -22,18 +22,21 @@
 - Docker (опционально)
 
 ### 1. Клонировать репозиторий
+
 ```bash
 git clone https://github.com/your-username/ex-bags.git
 cd ex-bags
 ```
 
 ### 2. Настройка бэкенда
+
 ```bash
 cd backend
 cp .env.example .env
 ```
 
 Заполни `.env` — минимум для локального запуска:
+
 ```
 SECRET_KEY=любая-случайная-строка
 DJANGO_SETTINGS_MODULE=config.settings.local
@@ -43,6 +46,7 @@ FRONTEND_URL=http://localhost:3000
 ```
 
 Установи зависимости и запусти:
+
 ```bash
 uv sync
 uv run python manage.py migrate
@@ -53,17 +57,20 @@ uv run python manage.py runserver
 Бэкенд доступен на http://localhost:8000
 
 ### 3. Настройка фронтенда
+
 ```bash
 cd frontend
 cp .env.example .env
 ```
 
 `.env` уже содержит нужное значение:
+
 ```
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
 Установи зависимости и запусти:
+
 ```bash
 yarn install
 yarn dev
@@ -74,6 +81,7 @@ yarn dev
 ---
 
 ## Запуск через Docker
+
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
@@ -91,6 +99,7 @@ docker compose exec backend uv run python manage.py createsuperuser
 2. В личном кабинете получи API-ключ
 3. Создай подпись (Sign) — название компании
 4. Заполни в `.env`:
+
 ```
 SMS_AERO_EMAIL=твой@email.ru
 SMS_AERO_API_KEY=твой-api-ключ
@@ -102,9 +111,11 @@ SMS_AERO_SIGN=НазваниеКомпании
 ## Настройка Email
 
 Для Gmail создай пароль приложения:
+
 1. Включи двухфакторную аутентификацию
 2. Перейди в Аккаунт Google → Безопасность → Пароли приложений
 3. Создай пароль и вставь в `.env`:
+
 ```
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
@@ -118,11 +129,13 @@ DEFAULT_FROM_EMAIL=noreply@ex-bags.ru
 ## Настройка Celery (уведомления)
 
 Celery запускается автоматически через Docker Compose вместе с остальными сервисами:
+
 ```bash
 docker compose up -d
 ```
 
 Отдельно запускать ничего не нужно. Проверить что воркер работает:
+
 ```bash
 docker compose logs celery
 ```
@@ -130,6 +143,7 @@ docker compose logs celery
 ---
 
 ## Структура проекта
+
 ```
 ex-bags/
 ├── backend/                  # Django бэкенд
@@ -156,20 +170,20 @@ ex-bags/
 
 ## API эндпоинты
 
-| Метод | URL | Описание |
-|-------|-----|----------|
-| POST | /api/auth/login/ | Вход администратора |
-| POST | /api/auth/refresh/ | Обновление токена |
-| POST | /api/applications/ | Создать заявку (публичный) |
-| GET | /api/admin/applications/ | Список заявок |
-| GET | /api/admin/applications/:id/ | Детали заявки |
-| POST | /api/admin/applications/:id/approve/ | Одобрить заявку |
-| POST | /api/admin/applications/:id/reject/ | Отклонить заявку |
-| GET | /api/admin/applications/:id/download/ | Скачать договор |
-| GET | /api/offer/:token/ | Предложение для продавца |
-| POST | /api/offer/:token/accept/ | Принять предложение |
-| POST | /api/offer/:token/decline/ | Отклонить предложение |
-| POST | /api/offer/:token/personal-data/ | Персональные данные |
-| GET | /api/sign/:token/contract/ | Получить договор PDF |
-| POST | /api/sign/:token/request-code/ | Запросить SMS-код |
-| POST | /api/sign/:token/confirm/ | Подтвердить подпись |
+| Метод | URL                                   | Описание                   |
+| ----- | ------------------------------------- | -------------------------- |
+| POST  | /api/auth/login/                      | Вход администратора        |
+| POST  | /api/auth/refresh/                    | Обновление токена          |
+| POST  | /api/applications/                    | Создать заявку (публичный) |
+| GET   | /api/admin/applications/              | Список заявок              |
+| GET   | /api/admin/applications/:id/          | Детали заявки              |
+| POST  | /api/admin/applications/:id/approve/  | Одобрить заявку            |
+| POST  | /api/admin/applications/:id/reject/   | Отклонить заявку           |
+| GET   | /api/admin/applications/:id/download/ | Скачать договор            |
+| GET   | /api/offer/:token/                    | Предложение для продавца   |
+| POST  | /api/offer/:token/accept/             | Принять предложение        |
+| POST  | /api/offer/:token/decline/            | Отклонить предложение      |
+| POST  | /api/offer/:token/personal-data/      | Персональные данные        |
+| GET   | /api/sign/:token/contract/            | Получить договор PDF       |
+| POST  | /api/sign/:token/request-code/        | Запросить SMS-код          |
+| POST  | /api/sign/:token/confirm/             | Подтвердить подпись        |
