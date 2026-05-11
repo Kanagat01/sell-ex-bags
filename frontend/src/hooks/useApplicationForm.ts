@@ -16,7 +16,7 @@ const conditionValues = Object.values(ApplicationCondition) as [string, ...strin
 
 const schema = z.object({
   brand: z.string().min(1, "Укажите бренд"),
-  model: z.string().min(1, "Укажите модель"),
+  model: z.string().optional(),
   size: z.string().optional(),
   condition: z.enum(conditionValues, {
     error: "Укажите состояние", 

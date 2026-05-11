@@ -28,7 +28,7 @@ export interface Application {
   id: string;
   format: ApplicationFormat;
   brand: string;
-  model: string;
+  model?: string;
   size: string;
   condition: ApplicationCondition;
   defects_description: string;
@@ -47,7 +47,7 @@ export interface Application {
 export interface CreateApplicationPayload {
   format: ApplicationFormat;
   brand: string;
-  model: string;
+  model?: string;
   size: string;
   condition: ApplicationCondition;
   defects_description?: string;

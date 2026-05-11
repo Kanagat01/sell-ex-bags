@@ -17,6 +17,8 @@ class ApplicationPhotoSerializer(serializers.ModelSerializer):
 class CreateApplicationSerializer(serializers.ModelSerializer):
     """Публичный — продавец создаёт заявку"""
 
+    model = serializers.CharField(required=False, allow_blank=True, default="")
+
     photos = serializers.ListField(
         child=serializers.ImageField(),
         write_only=True,

@@ -56,7 +56,6 @@ export default function ApplicationPage() {
               label="Модель"
               placeholder="Например: Birkin 30, Classic Flap"
               error={errors.model?.message}
-              required
               {...register("model")}
             />
 
@@ -98,7 +97,7 @@ export default function ApplicationPage() {
         {/* Контакты и цена */}
         <div className="flex flex-col gap-4">
           <h2 className="text-2xl font-medium text-center">Контакты и цена</h2>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-2">
             <Input
               label="Телефон"

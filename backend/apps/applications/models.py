@@ -30,7 +30,7 @@ class Application(models.Model):
 
     # Данные товара
     brand = models.CharField(max_length=100)
-    model = models.CharField(max_length=200)
+    model = models.CharField(max_length=200, blank=True)
     size = models.CharField(max_length=50, blank=True)
     condition = models.CharField(
         max_length=20,
