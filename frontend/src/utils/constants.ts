@@ -4,7 +4,7 @@ import {
   ApplicationStatus,
 } from "@/types";
 
-export const BRANDS = [
+export const BRANDS_BAGS = [
   "Acne Studios",
   "Alaia",
   "Alexander McQueen",
@@ -49,6 +49,9 @@ export const BRANDS = [
   "Van Cleef & Arpels",
   "Versace",
   "Vivienne Westwood",
+] as const;
+
+export const BRANDS_WATCHES = [
   "A.Lange&Sohne",
   "Audemars Piguet",
   "Blancpain",
@@ -74,8 +77,14 @@ export const BRANDS = [
   "Vacheron Constantain",
   "Van Cleef&Arpels",
   "Zenith",
-  "Другой",
 ] as const;
+
+export const ITEM_CATEGORIES = {
+  bags: "Сумки",
+  watches: "Часы и ювелирные изделия",
+} as const;
+
+export type ItemCategory = keyof typeof ITEM_CATEGORIES;
 
 export const FORMAT_LABELS: Record<ApplicationFormat, string> = {
   [ApplicationFormat.PURCHASE]: "Выкуп",

@@ -1,18 +1,19 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useApplicationStore } from "@/store"
 import { useApplicationForm } from "@/hooks"
 import { Button, Input, Select, Textarea, FileUpload } from "@/components/ui"
 import { ErrorMessage } from "@/components/shared"
-import { FORMAT_LABELS, BRANDS, CONDITION_LABELS } from "@/utils"
+import { FORMAT_LABELS, BRANDS_BAGS, BRANDS_WATCHES, ITEM_CATEGORIES, CONDITION_LABELS, ItemCategory } from "@/utils"
 import { ApplicationCondition } from "@/types"
 
 export default function ApplicationPage() {
   const router = useRouter()
   const { selectedFormat } = useApplicationStore()
   const { form, onSubmit } = useApplicationForm()
+  const [category, setCategory] = useState<ItemCategory | "">("")
 
   const {
     register,
@@ -20,22 +21,32 @@ export default function ApplicationPage() {
     setValue,
   } = form
 
-  // Если не выбран формат — редирект на главную
   useEffect(() => {
     if (!selectedFormat) router.replace("/")
   }, [selectedFormat, router])
 
   if (!selectedFormat) return null
 
-  const brandOptions = BRANDS.map((b) => ({ value: b, label: b }))
+  const categoryOptions = Object.entries(ITEM_CATEGORIES).map(([value, label]) => ({
+    value,
+    label,
+  }))
+
+  const brandList = category === "bags" ? BRANDS_BAGS : category === "watches" ? BRANDS_WATCHES : []
+  const brandOptions = brandList.map((b) => ({ value: b, label: b }))
+
   const conditionOptions = Object.values(ApplicationCondition).map((c) => ({
     value: c,
     label: CONDITION_LABELS[c],
   }))
 
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setCategory(e.target.value as ItemCategory)
+    setValue("brand", "", { shouldValidate: false })
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-12.5">
-      {/* <h1 className="text-3xl font-medium text-center mb-3">Заявка на {FORMAT_LABELS[selectedFormat]}</h1> */}
       <form onSubmit={onSubmit} className="flex flex-col gap-7.5">
 
         {/* Данные товара */}
@@ -44,11 +55,21 @@ export default function ApplicationPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
             <Select
+              label="Категория"
+              placeholder="Выберите категорию"
+              options={categoryOptions}
+              required
+              value={category}
+              onChange={handleCategoryChange}
+            />
+
+            <Select
               label="Бренд"
-              placeholder="Выберите бренд"
+              placeholder={category ? "Выберите бренд" : "Сначала выберите категорию"}
               options={brandOptions}
               error={errors.brand?.message}
               required
+              disabled={!category}
               {...register("brand")}
             />
 
