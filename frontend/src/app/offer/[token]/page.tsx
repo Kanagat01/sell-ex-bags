@@ -6,7 +6,7 @@ import { getOffer, acceptOffer, declineOffer } from "@/api"
 import { Offer } from "@/types"
 import { Button } from "@/components/ui"
 import { PageLoader, ErrorMessage } from "@/components/shared"
-import { FORMAT_LABELS, formatPrice } from "@/utils"
+import { FORMAT_LABELS, formatPrice, getApiError } from "@/utils"
 
 export default function OfferPage() {
   const { token } = useParams<{ token: string }>()
@@ -20,7 +20,7 @@ export default function OfferPage() {
   useEffect(() => {
     getOffer(token)
       .then(setOffer)
-      .catch((e) => setError(e.response?.data?.detail ?? "Предложение не найдено или истекло"))
+      .catch((e) => setError(getApiError(e, "Предложение не найдено или истекло")))
       .finally(() => setIsLoading(false))
   }, [token])
 
@@ -30,8 +30,7 @@ export default function OfferPage() {
       await acceptOffer(token)
       router.push(`/offer/${token}/personal-data`)
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { detail?: string } } }
-      setError(err.response?.data?.detail ?? "Ошибка")
+      setError(getApiError(e))
     } finally {
       setIsSubmitting(false)
     }
@@ -43,8 +42,7 @@ export default function OfferPage() {
       await declineOffer(token)
       router.push(`/offer/${token}/declined`)
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { detail?: string } } }
-      setError(err.response?.data?.detail ?? "Ошибка")
+      setError(getApiError(e))
     } finally {
       setIsSubmitting(false)
     }
@@ -58,25 +56,34 @@ export default function OfferPage() {
     <div className="flex flex-col gap-8 px-6 py-6 max-w-lg mx-auto">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-medium">Предложение по вашей заявке</h1>
-        <p className="text-sm text-neutral-500">
-          {offer.brand} {offer.model} · {FORMAT_LABELS[offer.format]}
-        </p>
+        <p className="text-sm text-neutral-500">{FORMAT_LABELS[offer.format]}</p>
       </div>
 
       <div className="flex flex-col gap-4 border border-neutral-200 p-6">
         <div className="flex flex-col gap-1">
-          <span className="text-sm text-neutral-500">Наше предложение</span>
-          <span className="text-3xl font-medium">{formatPrice(offer.offered_price)}</span>
-        </div>
-
-        <div className="flex flex-col gap-1 border-t border-neutral-100 pt-4">
           <span className="text-sm text-neutral-500">Формат</span>
           <span className="text-sm font-medium">{FORMAT_LABELS[offer.format]}</span>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <span className="text-sm text-neutral-500">Товар</span>
-          <span className="text-sm font-medium">{offer.brand} {offer.model}</span>
+        <div className="flex flex-col gap-3 border-t border-neutral-100 pt-4">
+          {offer.items.map((item, idx) => (
+            <div key={idx} className="flex items-center justify-between">
+              <span className="text-sm text-neutral-700">
+                {item.brand}{item.model ? ` ${item.model}` : ""}
+              </span>
+              <span className="text-sm font-medium">{formatPrice(item.offered_price)}</span>
+            </div>
+          ))}
+          {offer.items.length > 1 && (
+            <div className="flex items-center justify-between border-t border-neutral-100 pt-2">
+              <span className="text-sm text-neutral-500">Итого</span>
+              <span className="text-base font-semibold">
+                {formatPrice(
+                  offer.items.reduce((sum, i) => sum + Number(i.offered_price), 0)
+                )}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

@@ -46,16 +46,16 @@ export default function SignPage() {
   return (
     <div className="flex flex-col gap-8 max-w-2xl px-6 py-6 mx-auto">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-medium">Подписание договора</h1>
+        <h1 className="text-2xl font-medium">Подписание документа</h1>
         <p className="text-sm text-neutral-500">
-          Ознакомьтесь с договором и подпишите его с помощью SMS-кода
+          Ознакомьтесь с документом и подпишите его с помощью SMS-кода
         </p>
       </div>
 
       {contractUrl && <ContractViewer url={contractUrl} />}
 
       <div className="flex flex-col gap-4 border border-neutral-200 p-6">
-        <h2 className="font-medium">Подписать договор</h2>
+        <h2 className="font-medium">Подписать документ</h2>
 
         {!isSent ? (
           <div className="flex flex-col gap-3">
@@ -90,7 +90,7 @@ export default function SignPage() {
               disabled={code.length !== 6}
               fullWidth
             >
-              Подписать договор
+              Подписать
             </Button>
 
             <div className="flex items-center justify-between text-sm text-neutral-500">

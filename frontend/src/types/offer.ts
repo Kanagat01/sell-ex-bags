@@ -1,10 +1,14 @@
 import { ApplicationFormat } from "./application";
 
-export interface Offer {
+export interface OfferItem {
   brand: string;
   model?: string;
-  format: ApplicationFormat;
   offered_price: string;
+}
+
+export interface Offer {
+  format: ApplicationFormat;
+  items: OfferItem[];
   expires_at: string;
 }
 

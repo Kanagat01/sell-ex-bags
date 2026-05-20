@@ -8,6 +8,7 @@ import { submitPersonalData } from "@/api"
 import { PersonalDataPayload } from "@/types"
 import { Button, Input, Textarea } from "@/components/ui"
 import { ErrorMessage } from "@/components/shared"
+import { getApiError } from "@/utils"
 
 const schema = z.object({
   full_name: z.string().min(1, "Укажите ФИО"),
@@ -64,8 +65,7 @@ export default function PersonalDataPage() {
       const response = await submitPersonalData(token, data as PersonalDataPayload)
       router.push(`/sign/${response.sign_token}`)
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { detail?: string } } }
-      setError("root", { message: err.response?.data?.detail ?? "Ошибка при отправке данных" })
+      setError("root", { message: getApiError(e, "Ошибка при отправке данных") })
     }
   }
 

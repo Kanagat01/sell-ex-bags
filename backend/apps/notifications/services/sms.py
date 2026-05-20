@@ -44,16 +44,21 @@ class SmsService:
             logger.error(f"SMS отправка не удалась: {e}")
 
     @classmethod
-    def send_offer_notification(cls, phone: str, brand: str, amount: float, offer_url: str) -> None:
-        text = f"Мы готовы предложить вам {amount} ₽ за вашу сумку {brand}. Перейдите по ссылке, чтобы ознакомиться с условиями и принять решение: {offer_url}"
+    def send_offer_notification(cls, phone: str, short_label: str, amount: float, offer_url: str) -> None:
+        text = f"Мы готовы предложить вам {amount} ₽ за {short_label}. Перейдите по ссылке: {offer_url}"
         cls._send(phone, text)
 
     @classmethod
-    def send_rejection_notification(cls, phone: str, brand: str, reason: str) -> None:
-        text = f"К сожалению, мы не можем принять вашу сумку {brand}.\nПричина: {reason}"
+    def send_rejection_notification(cls, phone: str, short_label: str, reason: str) -> None:
+        text = f"К сожалению, мы не можем принять {short_label}.\nПричина: {reason}"
+        cls._send(phone, text)
+
+    @classmethod
+    def send_sign_link(cls, phone: str, document_type_display: str, sign_url: str) -> None:
+        text = f"{document_type_display} готов к подписанию. Ознакомьтесь и подпишите по ссылке: {sign_url}"
         cls._send(phone, text)
 
     @classmethod
     def send_sign_code(cls, phone: str, code: str) -> None:
-        text = f"Код подписания договора: {code}. Действует 5 минут."
+        text = f"Код подписания документа: {code}. Действует 5 минут."
         cls._send(phone, text)

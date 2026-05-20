@@ -2,7 +2,7 @@ import api from "./client"
 import { ConfirmSignaturePayload } from "@/types"
 
 export const getContractUrl = async (token: string): Promise<{ url: string }> => {
-  const { data } = await api.get<{ url: string }>(`/sign/${token}/contract/`)
+  const { data } = await api.get<{ url: string }>(`/sign/${token}/`)
   return data
 }
 

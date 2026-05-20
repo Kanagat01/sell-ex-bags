@@ -1,8 +1,8 @@
 from django.urls import path
-from .views import ContractPreviewView, RequestSmsCodeView, ConfirmSignatureView
+from .views import DocumentPreviewView, RequestSmsCodeView, ConfirmSignatureView
 
 urlpatterns = [
-    path("sign/<uuid:token>/contract/", ContractPreviewView.as_view(), name="contract-preview"),
-    path("sign/<uuid:token>/request-code/", RequestSmsCodeView.as_view(), name="contract-request-code"),
-    path("sign/<uuid:token>/confirm/", ConfirmSignatureView.as_view(), name="contract-confirm"),
+    path("sign/<uuid:token>/", DocumentPreviewView.as_view(), name="document-preview"),
+    path("sign/<uuid:token>/request-code/", RequestSmsCodeView.as_view(), name="document-request-code"),
+    path("sign/<uuid:token>/confirm/", ConfirmSignatureView.as_view(), name="document-confirm"),
 ]

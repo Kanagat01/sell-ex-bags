@@ -1,5 +1,5 @@
 from django.db import transaction
-from .models import Application, ApplicationStatus
+from .models import Application, ApplicationItem, ApplicationStatus
 from apps.offers.models import Offer
 from apps.notifications.tasks import (
     send_offer_notification,
@@ -11,13 +11,15 @@ class ApplicationService:
 
     @staticmethod
     @transaction.atomic
-    def approve(application: Application, offered_price) -> Offer:
-        """Администратор одобряет заявку — создаём Offer и отправляем уведомление"""
+    def approve(application: Application, items_prices: list) -> Offer:
+        price_map = {entry["id"]: entry["offered_price"] for entry in items_prices}
+        items = list(ApplicationItem.objects.filter(application=application, id__in=price_map))
+        for item in items:
+            item.offered_price = price_map[item.id]
+        ApplicationItem.objects.bulk_update(items, ["offered_price"])
 
         application.status = ApplicationStatus.OFFER_SENT
-        application.offered_price = offered_price
-        application.save(
-            update_fields=["status", "offered_price", "updated_at"])
+        application.save(update_fields=["status", "updated_at"])
 
         offer = Offer.objects.create(application=application)
 

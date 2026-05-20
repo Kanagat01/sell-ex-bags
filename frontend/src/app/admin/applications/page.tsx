@@ -16,6 +16,8 @@ const statusOptions = [
   { value: ApplicationStatus.ACCEPTED, label: "Принято" },
   { value: ApplicationStatus.DECLINED, label: "Отказано" },
   { value: ApplicationStatus.CONTRACT_SIGNED, label: "Договор подписан" },
+  { value: ApplicationStatus.ITEM_TRANSFERRED, label: "Товар передан" },
+  { value: ApplicationStatus.RETURN_PROCESSED, label: "Оформлен возврат" },
 ]
 
 const formatOptions = [
@@ -134,7 +136,13 @@ export default function AdminApplicationsPage() {
               href={`/admin/applications/${app.id}`}
               className="text-black font-medium hover:underline"
             >
-              {app.brand} {app.model}
+              {app.items[0].brand}
+              {app.items[0].model ? ` ${app.items[0].model}` : ""}
+              {app.items.length > 1 && (
+                <span className="ml-1 font-normal text-neutral-400">
+                  +{app.items.length - 1}
+                </span>
+              )}
             </Link>
           </td>
 
@@ -147,11 +155,15 @@ export default function AdminApplicationsPage() {
           </td>
 
           <td className="py-3 border-t-[0.8px] border-b-[0.8px] border-black">
-            {formatPrice(app.desired_price)}
+            {formatPrice(
+              app.items.reduce((sum, i) => sum + Number(i.desired_price), 0)
+            )}
           </td>
 
           <td className="py-3 border-t-[0.8px] border-b-[0.8px] border-black">
-            {app.offered_price ? formatPrice(app.offered_price) : "—"}
+            {app.items.some((i) => i.offered_price)
+              ? formatPrice(app.items.reduce((sum, i) => sum + Number(i.offered_price ?? 0), 0))
+              : "—"}
           </td>
 
           <td className="py-3 border-t-[0.8px] border-b-[0.8px] border-black">

@@ -5,18 +5,22 @@ from .models import Offer, PersonalData
 class OfferPublicSerializer(serializers.ModelSerializer):
     """Данные предложения для продавца по токену"""
 
-    brand = serializers.CharField(source="application.brand")
-    model = serializers.CharField(source="application.model")
     format = serializers.CharField(source="application.format")
-    offered_price = serializers.DecimalField(
-        source="application.offered_price",
-        max_digits=12,
-        decimal_places=2,
-    )
+    items = serializers.SerializerMethodField()
 
     class Meta:
         model = Offer
-        fields = ["brand", "model", "format", "offered_price", "expires_at"]
+        fields = ["format", "items", "expires_at"]
+
+    def get_items(self, obj):
+        return [
+            {
+                "brand": item.brand,
+                "model": item.model,
+                "offered_price": str(item.offered_price),
+            }
+            for item in obj.application.items.filter(offered_price__isnull=False)
+        ]
 
 
 class PersonalDataSerializer(serializers.ModelSerializer):

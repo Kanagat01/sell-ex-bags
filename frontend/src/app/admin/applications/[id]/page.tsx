@@ -9,7 +9,7 @@ import {
   getApplication,
   approveApplication,
   rejectApplication,
-  getAdminContractUrl
+  sendAct,
 } from "@/api"
 import { Application, ApplicationStatus } from "@/types"
 import { Button, Input, Modal, StatusBadge } from "@/components/ui"
@@ -17,36 +17,30 @@ import { PhotoGallery, PageLoader, ErrorMessage } from "@/components/shared"
 import {
   FORMAT_LABELS,
   CONDITION_LABELS,
+  AVAILABLE_ACTS,
   formatPrice,
   formatDateTime,
   formatPhone,
+  getApiError,
 } from "@/utils"
-
-const approveSchema = z.object({
-  offered_price: z.coerce.number().positive("Укажите сумму"),
-})
 
 const rejectSchema = z.object({
   rejection_reason: z.string().min(1, "Укажите причину"),
 })
 
-type ApproveForm = z.infer<typeof approveSchema>
 type RejectForm = z.infer<typeof rejectSchema>
 
 export default function ApplicationDetailPage() {
   const { id } = useParams<{ id: string }>()
 
   const [application, setApplication] = useState<Application | null>(null)
-  const [contractUrl, setContractUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isApproveOpen, setIsApproveOpen] = useState(false)
   const [isRejectOpen, setIsRejectOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
-
-  const approveForm = useForm<ApproveForm>({
-    resolver: zodResolver(approveSchema) as Resolver<ApproveForm>,
-  })
+  const [itemPrices, setItemPrices] = useState<Record<string, string>>({})
+  const [isSendingAct, setIsSendingAct] = useState(false)
 
   const rejectForm = useForm<RejectForm>({
     resolver: zodResolver(rejectSchema) as Resolver<RejectForm>,
@@ -56,18 +50,6 @@ export default function ApplicationDetailPage() {
     try {
       const data = await getApplication(id)
       setApplication(data)
-
-      if (
-      data.status === ApplicationStatus.ACCEPTED ||
-      data.status === ApplicationStatus.CONTRACT_SIGNED
-    ) {
-      try {
-        const { url } = await getAdminContractUrl(id)
-        setContractUrl(`${process.env.NEXT_PUBLIC_API_URL}${url}`)
-      } catch {
-        // договор ещё не сгенерирован — не критично
-      }
-    }
     } catch {
       setError("Заявка не найдена")
     } finally {
@@ -79,15 +61,23 @@ export default function ApplicationDetailPage() {
     fetchApplication()
   }, [id])
 
-  const handleApprove: SubmitHandler<ApproveForm> = async (data) => {
+  const handleApprove = async () => {
     setActionError(null)
+    if (!application) return
+    const items = application.items.map((item) => ({
+      id: item.id,
+      offered_price: Number(itemPrices[item.id] ?? 0),
+    }))
+    if (items.some((i) => !i.offered_price || i.offered_price <= 0)) {
+      setActionError("Укажите сумму для каждого товара")
+      return
+    }
     try {
-      await approveApplication(id, data)
+      await approveApplication(id, { items })
       setIsApproveOpen(false)
       await fetchApplication()
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { detail?: string } } }
-      setActionError(err.response?.data?.detail ?? "Ошибка")
+      setActionError(getApiError(e))
     }
   }
 
@@ -98,8 +88,20 @@ export default function ApplicationDetailPage() {
       setIsRejectOpen(false)
       await fetchApplication()
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { detail?: string } } }
-      setActionError(err.response?.data?.detail ?? "Ошибка")
+      setActionError(getApiError(e))
+    }
+  }
+
+  const handleSendAct = async (act_type: string) => {
+    setActionError(null)
+    setIsSendingAct(true)
+    try {
+      await sendAct(id, act_type)
+      await fetchApplication()
+    } catch (e: unknown) {
+      setActionError(getApiError(e, "Ошибка при отправке акта"))
+    } finally {
+      setIsSendingAct(false)
     }
   }
 
@@ -107,7 +109,10 @@ export default function ApplicationDetailPage() {
   if (error || !application) return <ErrorMessage message={error ?? "Ошибка"} />
 
   const canApproveOrReject = application.status === ApplicationStatus.NEW
-  const canDownload = application.status === ApplicationStatus.CONTRACT_SIGNED
+  const canSendAcceptanceAct = application.status === ApplicationStatus.CONTRACT_SIGNED
+  const canSendReturnAct =
+    application.status === ApplicationStatus.ITEM_TRANSFERRED &&
+    AVAILABLE_ACTS[application.format].some((a) => a.type === "return")
 
   return (
     <div className="flex flex-col gap-8">
@@ -115,7 +120,13 @@ export default function ApplicationDetailPage() {
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-medium">
-            {application.brand} {application.model}
+            {application.items[0].brand}
+            {application.items[0].model ? ` ${application.items[0].model}` : ""}
+            {application.items.length > 1 && (
+              <span className="ml-2 text-base font-normal text-neutral-500">
+                +{application.items.length - 1} изд.
+              </span>
+            )}
           </h1>
           <p className="text-sm text-neutral-500">
             {FORMAT_LABELS[application.format]} · {formatDateTime(application.created_at)}
@@ -125,34 +136,48 @@ export default function ApplicationDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        {/* Левая колонка */}
+        {/* Левая колонка — список изделий */}
         <div className="flex flex-col gap-6">
-          <PhotoGallery photos={application.photos} />
-
-          {/* Данные товара */}
-          <div className="flex flex-col gap-3 border border-neutral-200 p-5">
-            <h2 className="font-medium">Данные товара</h2>
-            <div className="grid grid-cols-2 gap-y-3 text-sm">
-              <span className="text-neutral-500">Бренд</span>
-              <span>{application.brand}</span>
-              <span className="text-neutral-500">Модель</span>
-              <span>{application.model}</span>
-              {application.size && (
-                <>
-                  <span className="text-neutral-500">Размер</span>
-                  <span>{application.size}</span>
-                </>
-              )}
-              <span className="text-neutral-500">Состояние</span>
-              <span>{CONDITION_LABELS[application.condition]}</span>
-              {application.defects_description && (
-                <>
-                  <span className="text-neutral-500">Изъяны</span>
-                  <span>{application.defects_description}</span>
-                </>
-              )}
+          {application.items.map((item, idx) => (
+            <div key={item.id} className="flex flex-col gap-4 border border-neutral-200 p-5">
+              <h2 className="font-medium">
+                Изделие {idx + 1}: {item.brand}{item.model ? ` ${item.model}` : ""}
+              </h2>
+              {item.photos.length > 0 && <PhotoGallery photos={item.photos} />}
+              <div className="grid grid-cols-2 gap-y-3 text-sm">
+                <span className="text-neutral-500">Бренд</span>
+                <span>{item.brand}</span>
+                {item.model && (
+                  <>
+                    <span className="text-neutral-500">Модель</span>
+                    <span>{item.model}</span>
+                  </>
+                )}
+                {item.size && (
+                  <>
+                    <span className="text-neutral-500">Размер</span>
+                    <span>{item.size}</span>
+                  </>
+                )}
+                <span className="text-neutral-500">Состояние</span>
+                <span>{CONDITION_LABELS[item.condition]}</span>
+                {item.defects_description && (
+                  <>
+                    <span className="text-neutral-500">Изъяны</span>
+                    <span>{item.defects_description}</span>
+                  </>
+                )}
+                <span className="text-neutral-500">Желаемая цена</span>
+                <span>{formatPrice(item.desired_price)}</span>
+                {item.offered_price && (
+                  <>
+                    <span className="text-neutral-500">Предложенная цена</span>
+                    <span className="font-medium">{formatPrice(item.offered_price)}</span>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
 
         {/* Правая колонка */}
@@ -167,21 +192,6 @@ export default function ApplicationDetailPage() {
                 <>
                   <span className="text-neutral-500">Email</span>
                   <span>{application.email}</span>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Цены */}
-          <div className="flex flex-col gap-3 border border-neutral-200 p-5">
-            <h2 className="font-medium">Цены</h2>
-            <div className="grid grid-cols-2 gap-y-3 text-sm">
-              <span className="text-neutral-500">Желаемая цена</span>
-              <span>{formatPrice(application.desired_price)}</span>
-              {application.offered_price && (
-                <>
-                  <span className="text-neutral-500">Предложенная цена</span>
-                  <span className="font-medium">{formatPrice(application.offered_price)}</span>
                 </>
               )}
             </div>
@@ -206,17 +216,64 @@ export default function ApplicationDetailPage() {
               </>
             )}
 
-            {contractUrl && (
+            {application.signed_documents.map((doc) => (
               <a
-                href={contractUrl}
+                key={doc.document_type}
+                href={`${process.env.NEXT_PUBLIC_API_URL}${doc.url}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full inline-flex items-center justify-center border border-black px-5 py-2.5 text-sm font-medium hover:bg-neutral-100 transition-colors"
               >
-                {application.status === ApplicationStatus.CONTRACT_SIGNED
-                  ? "Скачать подписанный договор"
-                  : "Предпросмотр договора"}
+                {doc.is_signed ? `Скачать подписанный: ${doc.label}` : `Предпросмотр: ${doc.label}`}
               </a>
+            ))}
+
+            {canSendAcceptanceAct && (
+              application.act_sent ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-neutral-600">Ссылка на подписание Акта приёма-передачи отправлена</p>
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleSendAct("acceptance")}
+                    isLoading={isSendingAct}
+                    fullWidth
+                  >
+                    Отправить повторно
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  onClick={() => handleSendAct("acceptance")}
+                  isLoading={isSendingAct}
+                  fullWidth
+                >
+                  Выслать акт приёма-передачи
+                </Button>
+              )
+            )}
+
+            {canSendReturnAct && (
+              application.act_sent ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-neutral-600">Ссылка на подписание Акта о возврате отправлена</p>
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleSendAct("return")}
+                    isLoading={isSendingAct}
+                    fullWidth
+                  >
+                    Отправить повторно
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  onClick={() => handleSendAct("return")}
+                  isLoading={isSendingAct}
+                  fullWidth
+                >
+                  Выслать акт о возврате
+                </Button>
+              )
             )}
           </div>
         </div>
@@ -228,18 +285,19 @@ export default function ApplicationDetailPage() {
         onClose={() => setIsApproveOpen(false)}
         title="Одобрить заявку"
       >
-        <form
-          onSubmit={approveForm.handleSubmit(handleApprove)}
-          className="flex flex-col gap-4"
-        >
-          <Input
-            label="Предлагаемая сумма (₽)"
-            type="number"
-            placeholder="150000"
-            error={approveForm.formState.errors.offered_price?.message}
-            required
-            {...approveForm.register("offered_price")}
-          />
+        <div className="flex flex-col gap-4">
+          {application.items.map((item) => (
+            <Input
+              key={item.id}
+              label={`${item.brand}${item.model ? ` ${item.model}` : ""} — сумма (₽)`}
+              type="number"
+              placeholder="150000"
+              value={itemPrices[item.id] ?? ""}
+              onChange={(e) =>
+                setItemPrices((prev) => ({ ...prev, [item.id]: e.target.value }))
+              }
+            />
+          ))}
           <div className="flex gap-3">
             <Button
               type="button"
@@ -249,15 +307,11 @@ export default function ApplicationDetailPage() {
             >
               Отмена
             </Button>
-            <Button
-              type="submit"
-              isLoading={approveForm.formState.isSubmitting}
-              fullWidth
-            >
+            <Button onClick={handleApprove} fullWidth>
               Одобрить
             </Button>
           </div>
-        </form>
+        </div>
       </Modal>
 
       {/* Модалка отклонения */}

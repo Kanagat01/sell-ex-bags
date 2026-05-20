@@ -70,5 +70,9 @@ class PersonalDataView(APIView):
 
         OfferService.save_personal_data(offer.application, serializer.validated_data)
 
-        sign_token = offer.application.contract.sign_token
-        return Response({"detail": "Данные сохранены", "sign_token": str(sign_token)})
+        from apps.contracts.models import Document, DocumentType
+        contract = Document.objects.filter(
+            application=offer.application,
+            document_type=DocumentType.CONTRACT,
+        ).first()
+        return Response({"detail": "Данные сохранены", "sign_token": str(contract.sign_token)})

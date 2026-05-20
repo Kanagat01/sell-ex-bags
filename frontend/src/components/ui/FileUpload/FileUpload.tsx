@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, DragEvent } from "react"
+import { useCallback, useId, DragEvent } from "react"
 import { useFileUpload } from "@/hooks"
 import { PHOTO_MAX_COUNT, PHOTO_MIN_COUNT } from "@/utils"
 
@@ -10,6 +10,7 @@ interface FileUploadProps {
 }
 
 export const FileUpload = ({ onChange, error }: FileUploadProps) => {
+  const inputId = useId()
   const { files, previews, error: uploadError, addFiles, removeFile } =
     useFileUpload({ maxFiles: PHOTO_MAX_COUNT, onChange })
 
@@ -43,10 +44,10 @@ export const FileUpload = ({ onChange, error }: FileUploadProps) => {
           accept="image/jpeg,image/png"
           multiple
           className="hidden"
-          id="photo-upload"
+          id={inputId}
           onChange={handleInput}
         />
-        <label htmlFor="photo-upload" className="flex flex-col items-center gap-2 cursor-pointer">
+        <label htmlFor={inputId} className="flex flex-col items-center gap-2 cursor-pointer">
           <span className="text-sm font-medium">Перетащите фото или нажмите для выбора</span>
           <span className="text-xs text-neutral-500">
             JPG, PNG · до 10 МБ · от {PHOTO_MIN_COUNT} до {PHOTO_MAX_COUNT} фото

@@ -1,5 +1,5 @@
 import { useRouter } from "next/navigation"
-import { useForm, SubmitHandler, Resolver } from "react-hook-form"
+import { useForm, useFieldArray, SubmitHandler, Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useApplicationStore } from "@/store"
@@ -9,20 +9,37 @@ import {
   PHOTO_MIN_COUNT,
   PHOTO_MAX_SIZE_MB,
   PHOTO_ALLOWED_TYPES,
+  getApiError,
 } from "@/utils"
 import { ApplicationCondition } from "@/types"
 
 const conditionValues = Object.values(ApplicationCondition) as [string, ...string[]]
 
-const schema = z.object({
+const photoSchema = z
+  .array(z.instanceof(File))
+  .min(PHOTO_MIN_COUNT, `Минимум ${PHOTO_MIN_COUNT} фото`)
+  .max(PHOTO_MAX_COUNT, `Максимум ${PHOTO_MAX_COUNT} фото`)
+  .refine(
+    (files) => files.every((f) => PHOTO_ALLOWED_TYPES.includes(f.type)),
+    "Допустимые форматы: JPG, PNG"
+  )
+  .refine(
+    (files) => files.every((f) => f.size <= PHOTO_MAX_SIZE_MB * 1024 * 1024),
+    `Максимальный размер: ${PHOTO_MAX_SIZE_MB} МБ`
+  )
+
+const itemSchema = z.object({
   brand: z.string().min(1, "Укажите бренд"),
   model: z.string().optional(),
   size: z.string().optional(),
-  condition: z.enum(conditionValues, {
-    error: "Укажите состояние", 
-  }).transform((val) => val as ApplicationCondition),
+  condition: z.enum(conditionValues, { error: "Укажите состояние" })
+    .transform((val) => val as ApplicationCondition),
   defects_description: z.string().optional(),
   desired_price: z.coerce.number().positive("Укажите желаемую цену"),
+  photos: photoSchema,
+})
+
+const schema = z.object({
   phone: z
     .string()
     .min(1, "Укажите телефон")
@@ -31,56 +48,65 @@ const schema = z.object({
       "Неверный формат телефона"
     ),
   email: z.email("Неверный формат email").optional().or(z.literal("")),
-  photos: z
-    .array(z.instanceof(File))
-    .min(PHOTO_MIN_COUNT, `Минимум ${PHOTO_MIN_COUNT} фото`)
-    .max(PHOTO_MAX_COUNT, `Максимум ${PHOTO_MAX_COUNT} фото`)
-    .refine(
-      (files) => files.every((f) => PHOTO_ALLOWED_TYPES.includes(f.type)),
-      "Допустимые форматы: JPG, PNG"
-    )
-    .refine(
-      (files) => files.every((f) => f.size <= PHOTO_MAX_SIZE_MB * 1024 * 1024),
-      `Максимальный размер: ${PHOTO_MAX_SIZE_MB} МБ`
-    ),
+  items: z.array(itemSchema).min(1),
 })
 
+export type ItemFormData = z.infer<typeof itemSchema>
 export type ApplicationFormData = z.infer<typeof schema>
+
+const emptyItem = (): ItemFormData => ({
+  brand: "",
+  model: "",
+  size: "",
+  condition: "" as ApplicationCondition,
+  defects_description: "",
+  desired_price: 0,
+  photos: [],
+})
 
 export const useApplicationForm = () => {
   const router = useRouter()
   const { selectedFormat } = useApplicationStore()
 
-  const form =useForm<ApplicationFormData, unknown, ApplicationFormData>({
+  const form = useForm<ApplicationFormData, unknown, ApplicationFormData>({
     resolver: zodResolver(schema) as Resolver<ApplicationFormData>,
     defaultValues: {
-      brand: "",
-      model: "",
-      size: "",
-      defects_description: "",
       phone: "",
       email: "",
-      photos: [],
+      items: [emptyItem()],
     },
   })
 
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "items",
+  })
+
+  const addItem = () => append(emptyItem())
+  const removeItem = (index: number) => remove(index)
+
   const onSubmit: SubmitHandler<ApplicationFormData> = async (data) => {
     if (!selectedFormat) return
-
     try {
       await createApplication({
-        ...data,
         format: selectedFormat,
-        size: data.size ?? "",
-        defects_description: data.defects_description ?? "",
+        phone: data.phone,
         email: data.email ?? "",
+        items: data.items.map((item) => ({
+          brand: item.brand,
+          model: item.model,
+          size: item.size,
+          condition: item.condition,
+          defects_description: item.defects_description,
+          desired_price: item.desired_price,
+          photos: item.photos,
+        })),
       })
       router.push("/application/success")
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { detail?: string } } }
-      form.setError("root", { message: err.response?.data?.detail ?? "Ошибка при отправке заявки" })
+      form.setError("root", { message: getApiError(e, "Ошибка при отправке заявки") })
     }
   }
 
-  return { form, onSubmit: form.handleSubmit(onSubmit) }
+  return { form, fields, addItem, removeItem, onSubmit: form.handleSubmit(onSubmit) }
 }

@@ -1,7 +1,7 @@
 from django.db import transaction
 from .models import Offer, PersonalData
 from apps.applications.models import Application, ApplicationStatus
-from apps.contracts.services import ContractService
+from apps.contracts.services import DocumentService
 
 
 class OfferService:
@@ -49,5 +49,5 @@ class OfferService:
             application=application,
             defaults=data,
         )
-        ContractService.generate(application)
+        DocumentService.generate_contract(application)
         return personal_data

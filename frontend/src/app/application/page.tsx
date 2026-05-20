@@ -9,17 +9,16 @@ import { ErrorMessage } from "@/components/shared"
 import { FORMAT_LABELS, BRANDS_BAGS, BRANDS_WATCHES, ITEM_CATEGORIES, CONDITION_LABELS, ItemCategory } from "@/utils"
 import { ApplicationCondition } from "@/types"
 
+const categoryOptions = Object.entries(ITEM_CATEGORIES).map(([value, label]) => ({ value, label }))
+const conditionOptions = Object.values(ApplicationCondition).map((c) => ({ value: c, label: CONDITION_LABELS[c] }))
+
 export default function ApplicationPage() {
   const router = useRouter()
   const { selectedFormat } = useApplicationStore()
-  const { form, onSubmit } = useApplicationForm()
-  const [category, setCategory] = useState<ItemCategory | "">("")
+  const { form, fields, addItem, removeItem, onSubmit } = useApplicationForm()
+  const [categories, setCategories] = useState<(ItemCategory | "")[]>([""])
 
-  const {
-    register,
-    formState: { errors, isSubmitting },
-    setValue,
-  } = form
+  const { register, formState: { errors, isSubmitting }, setValue } = form
 
   useEffect(() => {
     if (!selectedFormat) router.replace("/")
@@ -27,98 +26,136 @@ export default function ApplicationPage() {
 
   if (!selectedFormat) return null
 
-  const categoryOptions = Object.entries(ITEM_CATEGORIES).map(([value, label]) => ({
-    value,
-    label,
-  }))
+  const handleCategoryChange = (index: number, value: string) => {
+    setCategories((prev) => prev.map((c, i) => (i === index ? (value as ItemCategory) : c)))
+    setValue(`items.${index}.brand`, "", { shouldValidate: false })
+  }
 
-  const brandList = category === "bags" ? BRANDS_BAGS : category === "watches" ? BRANDS_WATCHES : []
-  const brandOptions = brandList.map((b) => ({ value: b, label: b }))
+  const handleAddItem = () => {
+    addItem()
+    setCategories((prev) => [...prev, ""])
+  }
 
-  const conditionOptions = Object.values(ApplicationCondition).map((c) => ({
-    value: c,
-    label: CONDITION_LABELS[c],
-  }))
-
-  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setCategory(e.target.value as ItemCategory)
-    setValue("brand", "", { shouldValidate: false })
+  const handleRemoveItem = (index: number) => {
+    removeItem(index)
+    setCategories((prev) => prev.filter((_, i) => i !== index))
   }
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-12.5">
-      <form onSubmit={onSubmit} className="flex flex-col gap-7.5">
+      <form onSubmit={onSubmit} className="flex flex-col gap-10">
 
-        {/* Данные товара */}
+        <h2 className="text-2xl font-medium text-center">
+          Заявка на {FORMAT_LABELS[selectedFormat].toLowerCase()}
+        </h2>
+
+        {/* Изделия */}
+        {fields.map((field, index) => {
+          const category = categories[index] ?? ("" as ItemCategory | "")
+          const brandList = category === "bags" ? BRANDS_BAGS : category === "watches" ? BRANDS_WATCHES : []
+          const brandOptions = brandList.map((b) => ({ value: b, label: b }))
+          const itemErrors = errors.items?.[index]
+
+          return (
+            <div key={field.id} className="flex flex-col gap-5 border border-neutral-200 p-6">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">Изделие {index + 1}</h3>
+                {fields.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveItem(index)}
+                    className="text-sm text-neutral-400 hover:text-red-500 transition-colors"
+                  >
+                    Удалить
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
+                <Select
+                  label="Категория"
+                  placeholder="Выберите категорию"
+                  options={categoryOptions}
+                  required
+                  value={category}
+                  onChange={(e) => handleCategoryChange(index, e.target.value)}
+                />
+
+                <Select
+                  label="Бренд"
+                  placeholder={category ? "Выберите бренд" : "Сначала выберите категорию"}
+                  options={brandOptions}
+                  error={itemErrors?.brand?.message}
+                  required
+                  disabled={!category}
+                  {...register(`items.${index}.brand`)}
+                />
+
+                <Input
+                  label="Модель"
+                  placeholder="Например: Birkin 30, Classic Flap"
+                  error={itemErrors?.model?.message}
+                  {...register(`items.${index}.model`)}
+                />
+
+                <Input
+                  label="Размер"
+                  placeholder="Например: 30, M"
+                  error={itemErrors?.size?.message}
+                  {...register(`items.${index}.size`)}
+                />
+
+                <Select
+                  label="Состояние"
+                  placeholder="Выберите состояние"
+                  options={conditionOptions}
+                  error={itemErrors?.condition?.message}
+                  required
+                  {...register(`items.${index}.condition`)}
+                />
+
+                <Input
+                  label="Желаемая цена"
+                  type="number"
+                  placeholder="150000"
+                  hint="В рублях"
+                  error={itemErrors?.desired_price?.message}
+                  required
+                  {...register(`items.${index}.desired_price`)}
+                />
+
+                <div className="sm:col-span-2">
+                  <Textarea
+                    label="Описание изъянов"
+                    placeholder="Потёртости, царапины, сколы фурнитуры..."
+                    rows={3}
+                    error={itemErrors?.defects_description?.message}
+                    {...register(`items.${index}.defects_description`)}
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <FileUpload
+                    onChange={(files) => setValue(`items.${index}.photos`, files, { shouldValidate: true })}
+                    error={itemErrors?.photos?.message as string | undefined}
+                  />
+                </div>
+              </div>
+            </div>
+          )
+        })}
+
+        <button
+          type="button"
+          onClick={handleAddItem}
+          className="self-start text-sm underline text-neutral-500 hover:text-black transition-colors"
+        >
+          + Добавить изделие
+        </button>
+
+        {/* Контакты */}
         <div className="flex flex-col gap-4">
-          <h2 className="text-2xl font-medium text-center">Информация о продаваемом товаре ({FORMAT_LABELS[selectedFormat]})</h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
-            <Select
-              label="Категория"
-              placeholder="Выберите категорию"
-              options={categoryOptions}
-              required
-              value={category}
-              onChange={handleCategoryChange}
-            />
-
-            <Select
-              label="Бренд"
-              placeholder={category ? "Выберите бренд" : "Сначала выберите категорию"}
-              options={brandOptions}
-              error={errors.brand?.message}
-              required
-              disabled={!category}
-              {...register("brand")}
-            />
-
-            <Input
-              label="Модель"
-              placeholder="Например: Birkin 30, Classic Flap"
-              error={errors.model?.message}
-              {...register("model")}
-            />
-
-            <Input
-              label="Размер"
-              placeholder="Например: 30, M"
-              error={errors.size?.message}
-              {...register("size")}
-            />
-
-            <Select
-              label="Состояние"
-              placeholder="Выберите состояние"
-              options={conditionOptions}
-              error={errors.condition?.message}
-              required
-              {...register("condition")}
-            />
-
-            <Textarea
-              label="Описание изъянов"
-              placeholder="Потёртости, царапины, сколы фурнитуры..."
-              rows={3}
-              error={errors.defects_description?.message}
-              {...register("defects_description")}
-            />
-          </div>
-        </div>
-
-        {/* Фотографии */}
-        <div className="flex flex-col gap-6">
-          <h2 className="text-2xl font-medium text-center">Фотографии</h2>
-          <FileUpload
-            onChange={(files) => setValue("photos", files, { shouldValidate: true })}
-            error={errors.photos?.message}
-          />
-        </div>
-
-        {/* Контакты и цена */}
-        <div className="flex flex-col gap-4">
-          <h2 className="text-2xl font-medium text-center">Контакты и цена</h2>
-
+          <h2 className="text-2xl font-medium text-center">Контакты</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-2">
             <Input
               label="Телефон"
@@ -128,7 +165,6 @@ export default function ApplicationPage() {
               required
               {...register("phone")}
             />
-
             <Input
               label="Email"
               type="email"
@@ -136,16 +172,6 @@ export default function ApplicationPage() {
               hint="Необязательно — для уведомлений"
               error={errors.email?.message}
               {...register("email")}
-            />
-
-            <Input
-              label="Желаемая цена"
-              type="number"
-              placeholder="150000"
-              hint="В рублях"
-              error={errors.desired_price?.message}
-              required
-              {...register("desired_price")}
             />
           </div>
         </div>

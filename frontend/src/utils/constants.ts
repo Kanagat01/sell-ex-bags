@@ -113,6 +113,22 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   [ApplicationStatus.ACCEPTED]: "Принято",
   [ApplicationStatus.DECLINED]: "Отказано",
   [ApplicationStatus.CONTRACT_SIGNED]: "Договор подписан",
+  [ApplicationStatus.ITEM_TRANSFERRED]: "Товар передан",
+  [ApplicationStatus.RETURN_PROCESSED]: "Оформлен возврат",
+};
+
+export const AVAILABLE_ACTS: Record<ApplicationFormat, { type: string; label: string }[]> = {
+  [ApplicationFormat.PURCHASE]: [
+    { type: "acceptance", label: "Акт приёма-передачи" },
+    { type: "return", label: "Акт возврата" },
+  ],
+  [ApplicationFormat.TRADE_IN]: [
+    { type: "acceptance", label: "Акт приёма-передачи" },
+  ],
+  [ApplicationFormat.COMMISSION]: [
+    { type: "acceptance", label: "Акт приёма-передачи" },
+    { type: "return", label: "Акт возврата" },
+  ],
 };
 
 export const PHOTO_MIN_COUNT = 3;

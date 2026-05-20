@@ -13,6 +13,8 @@ class ApplicationStatus(models.TextChoices):
     ACCEPTED = "accepted", "Принято"
     DECLINED = "declined", "Отказано"
     CONTRACT_SIGNED = "contract_signed", "Договор подписан"
+    ITEM_TRANSFERRED = "item_transferred", "Товар передан"
+    RETURN_PROCESSED = "return_processed", "Оформлен возврат"
 
 
 class ApplicationCondition(models.TextChoices):
@@ -22,39 +24,17 @@ class ApplicationCondition(models.TextChoices):
 
 
 class Application(models.Model):
-    # Формат сотрудничества
     format = models.CharField(
         max_length=20,
         choices=ApplicationFormat.choices,
     )
-
-    # Данные товара
-    brand = models.CharField(max_length=100)
-    model = models.CharField(max_length=200, blank=True)
-    size = models.CharField(max_length=50, blank=True)
-    condition = models.CharField(
-        max_length=20,
-        choices=ApplicationCondition.choices,
-    )
-    defects_description = models.TextField(blank=True)
-    desired_price = models.DecimalField(max_digits=12, decimal_places=2)
-
-    # Контакты продавца
-    phone = models.CharField(max_length=20)
-    email = models.EmailField(blank=True)
-
-    # Статус и цена от администратора
     status = models.CharField(
         max_length=20,
         choices=ApplicationStatus.choices,
         default=ApplicationStatus.NEW,
     )
-    offered_price = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        null=True,
-        blank=True,
-    )
+    phone = models.CharField(max_length=20)
+    email = models.EmailField(blank=True)
     rejection_reason = models.TextField(blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -67,7 +47,40 @@ class Application(models.Model):
         verbose_name_plural = "Заявки"
 
     def __str__(self) -> str:
-        return f"{self.brand} {self.model} — {self.phone} ({self.get_status_display()})"
+        return f"{self.get_format_display()} — {self.phone} ({self.get_status_display()})".strip()
+
+
+class ApplicationItem(models.Model):
+    application = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE,
+        related_name="items",
+    )
+    brand = models.CharField(max_length=100)
+    model = models.CharField(max_length=200, blank=True)
+    size = models.CharField(max_length=50, blank=True)
+    condition = models.CharField(
+        max_length=20,
+        choices=ApplicationCondition.choices,
+    )
+    defects_description = models.TextField(blank=True)
+    desired_price = models.DecimalField(max_digits=12, decimal_places=2)
+    offered_price = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = "application_items"
+        ordering = ["order"]
+        verbose_name = "Изделие"
+        verbose_name_plural = "Изделия"
+
+    def __str__(self) -> str:
+        return f"{self.brand} {self.model}".strip()
 
 
 class ApplicationPhoto(models.Model):
@@ -75,6 +88,13 @@ class ApplicationPhoto(models.Model):
         Application,
         on_delete=models.CASCADE,
         related_name="photos",
+    )
+    item = models.ForeignKey(
+        ApplicationItem,
+        on_delete=models.CASCADE,
+        related_name="photos",
+        null=True,
+        blank=True,
     )
     file = models.ImageField(upload_to="applications/%Y/%m/")
     order = models.PositiveSmallIntegerField(default=0)

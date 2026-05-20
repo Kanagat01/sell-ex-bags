@@ -10,6 +10,8 @@ export enum ApplicationStatus {
   ACCEPTED = "accepted",
   DECLINED = "declined",
   CONTRACT_SIGNED = "contract_signed",
+  ITEM_TRANSFERRED = "item_transferred",
+  RETURN_PROCESSED = "return_processed",
 }
 
 export enum ApplicationCondition {
@@ -24,9 +26,8 @@ export interface ApplicationPhoto {
   order: number;
 }
 
-export interface Application {
+export interface ApplicationItem {
   id: string;
-  format: ApplicationFormat;
   brand: string;
   model?: string;
   size: string;
@@ -34,31 +35,55 @@ export interface Application {
   defects_description: string;
   desired_price: string;
   offered_price: string | null;
-  rejection_reason: string;
+  order: number;
+  photos: ApplicationPhoto[];
+}
+
+export interface SignedDocument {
+  document_type: string;
+  label: string;
+  url: string;
+  is_signed: boolean;
+}
+
+export interface Application {
+  id: string;
+  format: ApplicationFormat;
   phone: string;
   email: string;
   status: ApplicationStatus;
-  photos: ApplicationPhoto[];
-  photos_count?: number;
+  rejection_reason: string;
+  items: ApplicationItem[];
+  act_sent: boolean;
+  signed_documents: SignedDocument[];
   created_at: string;
   updated_at: string;
 }
 
-export interface CreateApplicationPayload {
-  format: ApplicationFormat;
+export interface ApplicationItemPayload {
   brand: string;
   model?: string;
-  size: string;
+  size?: string;
   condition: ApplicationCondition;
   defects_description?: string;
   desired_price: number;
-  phone: string;
-  email?: string;
   photos: File[];
 }
 
-export interface ApproveApplicationPayload {
+export interface CreateApplicationPayload {
+  format: ApplicationFormat;
+  phone: string;
+  email?: string;
+  items: ApplicationItemPayload[];
+}
+
+export interface ItemOfferPrice {
+  id: string;
   offered_price: number;
+}
+
+export interface ApproveApplicationPayload {
+  items: ItemOfferPrice[];
 }
 
 export interface RejectApplicationPayload {

@@ -12,30 +12,29 @@ export const createApplication = async (
   const formData = new FormData();
 
   formData.append("format", payload.format);
-  formData.append("brand", payload.brand);
-  if (payload.model) formData.append("model", payload.model);
-  formData.append("size", payload.size);
-  formData.append("condition", payload.condition);
-  formData.append("desired_price", String(payload.desired_price));
   formData.append("phone", payload.phone);
+  if (payload.email) formData.append("email", payload.email);
 
-  if (payload.defects_description) {
-    formData.append("defects_description", payload.defects_description);
-  }
-  if (payload.email) {
-    formData.append("email", payload.email);
-  }
+  const itemsMeta = payload.items.map((item) => ({
+    brand: item.brand,
+    model: item.model ?? "",
+    size: item.size ?? "",
+    condition: item.condition,
+    defects_description: item.defects_description ?? "",
+    desired_price: item.desired_price,
+  }));
+  formData.append("items_data", JSON.stringify(itemsMeta));
 
-  payload.photos.forEach((photo) => {
-    formData.append("photos", photo);
+  payload.items.forEach((item, i) => {
+    item.photos.forEach((photo) => {
+      formData.append(`items_photos_${i}`, photo);
+    });
   });
 
   const { data } = await api.post<{ detail: string }>(
     "/applications/",
     formData,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    },
+    { headers: { "Content-Type": "multipart/form-data" } },
   );
   return data;
 };
@@ -64,6 +63,17 @@ export const approveApplication = async (
   const { data } = await api.post<{ detail: string }>(
     `/admin/applications/${id}/approve/`,
     payload,
+  );
+  return data;
+};
+
+export const sendAct = async (
+  id: string,
+  act_type: string,
+): Promise<{ detail: string; sign_token: string }> => {
+  const { data } = await api.post<{ detail: string; sign_token: string }>(
+    `/admin/applications/${id}/send-act/`,
+    { act_type },
   );
   return data;
 };

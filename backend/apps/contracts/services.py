@@ -9,15 +9,29 @@ from django.utils import timezone
 from django.conf import settings
 from django.template.loader import render_to_string
 
-from apps.applications.models import Application, ApplicationStatus
-from apps.notifications.tasks import send_contract_signed_notification
-from .models import Contract, SmsCode
+from apps.applications.models import Application, ApplicationFormat, ApplicationStatus
+from apps.notifications.tasks import send_document_signed_notification
+from .models import Document, DocumentType, SmsCode
 
 
-TEMPLATE_MAP = {
-    "purchase": "contracts/purchase.html",
-    "trade_in": "contracts/tradein.html",
-    "commission": "contracts/commission.html",
+CONTRACT_TEMPLATE_MAP = {
+    ApplicationFormat.PURCHASE: "contracts/purchase.html",
+    ApplicationFormat.TRADE_IN: "contracts/tradein.html",
+    ApplicationFormat.COMMISSION: "contracts/commission.html",
+}
+
+ACT_TEMPLATE_MAP = {
+    ApplicationFormat.PURCHASE: {
+        DocumentType.ACCEPTANCE_ACT: "contracts/acts/purchase_acceptance.html",
+        DocumentType.RETURN_ACT: "contracts/acts/purchase_return.html",
+    },
+    ApplicationFormat.TRADE_IN: {
+        DocumentType.ACCEPTANCE_ACT: "contracts/acts/tradein_acceptance.html",
+    },
+    ApplicationFormat.COMMISSION: {
+        DocumentType.ACCEPTANCE_ACT: "contracts/acts/commission_acceptance.html",
+        DocumentType.RETURN_ACT: "contracts/acts/commission_return.html",
+    },
 }
 
 
@@ -35,35 +49,31 @@ def amount_to_words(value: Decimal) -> str:
         return f"{words} целых {kopeks_str} сотых"
 
 
-class ContractService:
+class DocumentService:
 
     @staticmethod
-    def _generate_contract_number(contract: "Contract") -> str:
-        created = timezone.localtime(contract.created_at)
+    def _generate_document_number(document: Document) -> str:
+        created = timezone.localtime(document.created_at)
         day_start = created.replace(hour=0, minute=0, second=0, microsecond=0)
         day_end = day_start + timedelta(days=1)
-        sequence = Contract.objects.filter(
+        sequence = Document.objects.filter(
+            document_type=document.document_type,
             created_at__gte=day_start,
             created_at__lt=day_end,
-            id__lte=contract.id,
+            id__lte=document.id,
         ).count()
         return f"{created.month}-{created.day}-{sequence}"
 
     @staticmethod
-    def generate(application: Application) -> Contract:
-        """Генерация PDF договора из HTML шаблона"""
-        from weasyprint import HTML
-
+    def _build_context(application: Application, document: Document) -> dict:
+        application = Application.objects.select_related("personal_data").prefetch_related("items").get(pk=application.pk)
         personal_data = application.personal_data
-        contract, _ = Contract.objects.get_or_create(application=application)
-
-        if not contract.contract_number:
-            contract.contract_number = ContractService._generate_contract_number(contract)
-            contract.save(update_fields=["contract_number"])
-
-        template_name = TEMPLATE_MAP[application.format]
-
-        context = {
+        items = list(application.items.all())
+        total_offered = sum(
+            (item.offered_price for item in items if item.offered_price),
+            Decimal("0"),
+        )
+        return {
             "seller_fullname": personal_data.full_name,
             "seller_passport": f"{personal_data.passport_series} {personal_data.passport_number}",
             "seller_passport_issued_by": personal_data.passport_issued_by,
@@ -73,40 +83,64 @@ class ContractService:
             "seller_address": personal_data.registration_address,
             "seller_phone": application.phone,
             "seller_email": application.email,
-            "product_brand": application.brand,
-            "product_model": application.model,
-            "product_size": application.size,
-            "product_condition": application.get_condition_display(),
-            "defects_description": application.defects_description,
-            "contract_amount": application.offered_price.normalize(),
-            "contract_amount_words": amount_to_words(application.offered_price),
-            "contract_date": application.contract.created_at,
-            "contract_number": contract.contract_number,
+            "items": items,
+            "contract_amount": total_offered.normalize(),
+            "contract_amount_words": amount_to_words(total_offered),
+            "document_date": document.created_at,
+            "document_number": document.document_number,
             "account_number": personal_data.account_number,
             "bank_name": personal_data.bank_name,
             "bik": personal_data.bik,
             "correspondent_account": personal_data.correspondent_account,
-            "signed_at": application.contract.signed_at,
+            "signed_at": document.signed_at,
         }
 
-        html_string = render_to_string(template_name, context)
-        pdf_bytes = HTML(string=html_string).write_pdf()
-        filename = f"contract_{application.pk}.pdf"
-        contract.pdf_file.save(filename, BytesIO(pdf_bytes), save=True)
+    @staticmethod
+    def generate_contract(application: Application) -> Document:
+        from weasyprint import HTML
 
-        return contract
+        document, _ = Document.objects.get_or_create(
+            application=application,
+            document_type=DocumentType.CONTRACT,
+        )
+        if not document.document_number:
+            document.document_number = DocumentService._generate_document_number(document)
+            document.save(update_fields=["document_number"])
+
+        context = DocumentService._build_context(application, document)
+        html_string = render_to_string(CONTRACT_TEMPLATE_MAP[application.format], context)
+        pdf_bytes = HTML(string=html_string).write_pdf()
+        document.pdf_file.save(f"contract_{application.pk}.pdf", BytesIO(pdf_bytes), save=True)
+        return document
 
     @staticmethod
-    def request_sms_code(contract: Contract) -> SmsCode:
-        """Создать новый SMS код для подписания"""
+    def generate_act(application: Application, act_type: str) -> Document:
+        from weasyprint import HTML
 
+        format_acts = ACT_TEMPLATE_MAP.get(application.format, {})
+        if act_type not in format_acts:
+            raise ValueError(
+                f"Акт «{DocumentType(act_type).label}» недоступен для формата «{application.get_format_display()}»"
+            )
+
+        document, _ = Document.objects.get_or_create(
+            application=application,
+            document_type=act_type,
+        )
+        context = DocumentService._build_context(application, document)
+        html_string = render_to_string(format_acts[act_type], context)
+        pdf_bytes = HTML(string=html_string).write_pdf()
+        document.pdf_file.save(f"act_{act_type}_{application.pk}.pdf", BytesIO(pdf_bytes), save=True)
+        return document
+
+    @staticmethod
+    def request_sms_code(document: Document) -> SmsCode:
         ttl = settings.SMS_CODE_TTL_MINUTES
         max_sends = settings.SMS_CODE_MAX_SENDS_PER_DAY
 
-        # Проверяем лимит отправок за сутки
         today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
         sends_today = SmsCode.objects.filter(
-            contract=contract,
+            document=document,
             created_at__gte=today_start,
         ).count()
 
@@ -114,37 +148,27 @@ class ContractService:
             raise ValueError("Превышен лимит отправок кода в сутки")
 
         code = "".join(random.choices(string.digits, k=6))
-
-        sms_code = SmsCode.objects.create(
-            contract=contract,
-            phone=contract.application.phone,
+        return SmsCode.objects.create(
+            document=document,
+            phone=document.application.phone,
             code=code,
             expires_at=timezone.now() + timedelta(minutes=ttl),
         )
 
-        return sms_code
-
     @staticmethod
-    def confirm_signature(contract: Contract, code: str) -> None:
-        """Подтвердить подпись кодом из SMS"""
-
+    def confirm_signature(document: Document, code: str) -> None:
         max_attempts = settings.SMS_CODE_MAX_ATTEMPTS
 
         sms_code = (
-            SmsCode.objects.filter(
-                contract=contract,
-                is_used=False,
-            )
+            SmsCode.objects.filter(document=document, is_used=False)
             .order_by("-created_at")
             .first()
         )
 
         if not sms_code:
             raise ValueError("Код не найден. Запросите новый")
-
         if timezone.now() > sms_code.expires_at:
             raise ValueError("Срок действия кода истёк")
-
         if sms_code.attempts >= max_attempts:
             raise ValueError("Превышено количество попыток")
 
@@ -155,18 +179,27 @@ class ContractService:
             remaining = max_attempts - sms_code.attempts
             raise ValueError(f"Неверный код. Осталось попыток: {remaining}")
 
-        # Код верный — фиксируем подпись
         sms_code.is_used = True
         sms_code.save(update_fields=["is_used", "attempts"])
 
-        contract.is_signed = True
-        contract.signed_at = timezone.now()
-        contract.signed_by_phone = sms_code.phone
-        contract.save(update_fields=["is_signed",
-                      "signed_at", "signed_by_phone"])
+        document.is_signed = True
+        document.signed_at = timezone.now()
+        document.signed_by_phone = sms_code.phone
+        document.save(update_fields=["is_signed", "signed_at", "signed_by_phone"])
 
-        contract.application.status = ApplicationStatus.CONTRACT_SIGNED
-        contract.application.save(update_fields=["status", "updated_at"])
+        status_map = {
+            DocumentType.CONTRACT: ApplicationStatus.CONTRACT_SIGNED,
+            DocumentType.ACCEPTANCE_ACT: ApplicationStatus.ITEM_TRANSFERRED,
+            DocumentType.RETURN_ACT: ApplicationStatus.RETURN_PROCESSED,
+        }
+        new_status = status_map.get(document.document_type)
+        if new_status:
+            document.application.status = new_status
+            document.application.save(update_fields=["status", "updated_at"])
 
-        ContractService.generate(contract.application)
-        send_contract_signed_notification.delay(str(contract.application.id))
+        if document.document_type == DocumentType.CONTRACT:
+            DocumentService.generate_contract(document.application)
+        else:
+            DocumentService.generate_act(document.application, document.document_type)
+
+        send_document_signed_notification.delay(document.id)

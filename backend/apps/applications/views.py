@@ -27,10 +27,12 @@ class CreateApplicationView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request: Request) -> Response:
-        serializer = CreateApplicationSerializer(data=request.data)
+        serializer = CreateApplicationSerializer(
+            data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         application = serializer.save()
-        transaction.on_commit(lambda: send_new_application_notification.delay(application.id))
+        transaction.on_commit(
+            lambda: send_new_application_notification.delay(application.id))
         return Response(
             {"detail": "Заявка принята! Мы рассмотрим её и свяжемся с вами в ближайшее время."},
             status=status.HTTP_201_CREATED,
@@ -45,7 +47,8 @@ class AdminApplicationListView(ListAPIView):
     serializer_class = ApplicationListSerializer
 
     def get_queryset(self) -> QuerySet:
-        queryset = Application.objects.prefetch_related("photos")
+        queryset = Application.objects.prefetch_related(
+            "items", "items__photos")
 
         # Фильтры
         status_filter = self.request.query_params.get("status")
@@ -71,7 +74,7 @@ class AdminApplicationDetailView(RetrieveAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdminUser]
     serializer_class = ApplicationDetailSerializer
-    queryset = Application.objects.prefetch_related("photos")
+    queryset = Application.objects.prefetch_related("items", "items__photos", "documents")
 
 
 class AdminApproveApplicationView(APIView):
@@ -92,7 +95,8 @@ class AdminApproveApplicationView(APIView):
         serializer = ApproveApplicationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        ApplicationService.approve(application, serializer.validated_data["offered_price"])
+        ApplicationService.approve(
+            application, serializer.validated_data["items"])
         return Response({"detail": "Заявка одобрена, уведомление отправлено продавцу"})
 
 
@@ -114,7 +118,8 @@ class AdminRejectApplicationView(APIView):
         serializer = RejectApplicationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        ApplicationService.reject(application, serializer.validated_data["rejection_reason"])
+        ApplicationService.reject(
+            application, serializer.validated_data["rejection_reason"])
         return Response({"detail": "Заявка отклонена"})
 
 
@@ -125,12 +130,57 @@ class AdminContractPreviewView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request: Request, pk: int) -> Response:
-        application = Application.objects.get(pk=pk)
+        from apps.contracts.models import Document, DocumentType
 
-        if not hasattr(application, "contract"):
+        application = Application.objects.get(pk=pk)
+        contract = Document.objects.filter(
+            application=application,
+            document_type=DocumentType.CONTRACT,
+        ).first()
+
+        if not contract or not contract.pdf_file:
             return Response(
                 {"detail": "Договор ещё не сформирован"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        return Response({"url": application.contract.pdf_file.url})
+        return Response({"url": contract.pdf_file.url})
+
+
+class AdminSendActView(APIView):
+    """POST /api/admin/applications/:id/send-act/"""
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+
+    def post(self, request: Request, pk: int) -> Response:
+        from apps.contracts.services import DocumentService
+        from apps.notifications.services.sms import SmsService
+
+        act_type = request.data.get("act_type")
+        if not act_type:
+            return Response(
+                {"detail": "Укажите act_type"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from django.conf import settings
+
+        application = Application.objects.get(pk=pk)
+
+        try:
+            document = DocumentService.generate_act(application, act_type)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        sign_url = f"{settings.FRONTEND_URL}/sign/{document.sign_token}"
+        SmsService.send_sign_link(
+            phone=application.phone,
+            document_type_display=document.get_document_type_display(),
+            sign_url=sign_url,
+        )
+
+        return Response({
+            "detail": "Акт сформирован, ссылка для подписания отправлена продавцу",
+            "sign_token": str(document.sign_token),
+        })

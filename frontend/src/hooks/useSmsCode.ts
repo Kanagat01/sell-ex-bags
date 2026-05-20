@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { requestSmsCode, confirmSignature } from "@/api"
+import { getApiError } from "@/utils"
 
 const CODE_TTL_SECONDS = 5 * 60 // 5 минут
 
@@ -38,8 +39,7 @@ export const useSmsCode = (token: string) => {
       setIsSent(true)
       startTimer()
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { detail?: string } } }
-      setError(err.response?.data?.detail ?? "Ошибка отправки кода")
+      setError(getApiError(e, "Ошибка отправки кода"))
     } finally {
       setIsLoading(false)
     }
@@ -52,8 +52,7 @@ export const useSmsCode = (token: string) => {
       await confirmSignature(token, { code })
       setIsConfirmed(true)
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { detail?: string } } }
-      setError(err.response?.data?.detail ?? "Неверный код")
+      setError(getApiError(e, "Неверный код"))
     } finally {
       setIsLoading(false)
     }
