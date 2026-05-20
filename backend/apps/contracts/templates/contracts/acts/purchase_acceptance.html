@@ -103,8 +103,8 @@
       <div class="appendix-title">ПРИЛОЖЕНИЕ № 1</div>
       <p class="text-center mt-3">АКТ приема-передачи товара</p>
       <p class="text-center mt-3">
-        по договору купли-продажи № {{ contract_number }} от
-        {{contract_date|date:"d.m.Y" }} г.
+        по договору купли-продажи № {{ document_number }} от
+        {{document_date|date:"d.m.Y" }} г.
       </p>
       <div class="mt-6"></div>
       <p class="flex justify-between" style="padding-right: 9mm">
@@ -153,7 +153,12 @@
           <p class="mt-3">От Продавца</p>
           <div class="mt-6"></div>
           <span class="mt-3"
-            >___________________/{{ seller_fullname|short_fio }}</span
+            >{% if signed_at %}
+            <span style="text-decoration: underline"
+              >Подписан [{{ signed_at|date:"d.m.Y H:i" }}] посредством
+              СМС-подтверждения с номера [{{ seller_phone }}]</span
+            >{% else %}___________________
+            {%endif%}/{{seller_fullname|short_fio}}</span
           >
         </div>
       </div>

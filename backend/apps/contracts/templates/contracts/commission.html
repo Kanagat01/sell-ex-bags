@@ -156,7 +156,7 @@
     <div class="main-page">
       <div>
         <p class="text-center" style="font-size: 7pt; font-weight: 600">
-          ДОГОВОР КОМИССИИ № {{ contract_number }}
+          ДОГОВОР КОМИССИИ № {{ document_number }}
         </p>
         <div
           class="flex justify-between"
@@ -164,8 +164,8 @@
         >
           <span>г. Москва</span>
           <span>
-            «{{ contract_date|date:"d" }}» {{ contract_date|date:"E" }}
-            {{contract_date|date:"Y" }} г.
+            «{{ document_date|date:"d" }}» {{ document_date|date:"E" }}
+            {{document_date|date:"Y" }} г.
           </span>
         </div>
         <p>
@@ -450,8 +450,8 @@
       <div class="appendix-title">ПРИЛОЖЕНИЕ № 1</div>
       <p class="text-center mt-3">АКТ приема-передачи товара</p>
       <p class="text-center mt-3">
-        по договору комиссии № {{ contract_number }} от
-        {{contract_date|date:"d.m.Y" }} г.
+        по договору комиссии № {{ document_number }} от
+        {{document_date|date:"d.m.Y" }} г.
       </p>
       <div class="mt-6"></div>
       <p class="flex justify-between" style="padding-right: 9mm">
@@ -504,8 +504,8 @@
         <div class="appendix-title">ПРИЛОЖЕНИЕ № 2</div>
         <p class="text-center mt-3">АКТ возврата товара</p>
         <p class="text-center mt-3">
-          по договору комиссии № {{ contract_number }} от
-          {{contract_date|date:"d.m.Y" }} г.
+          по договору комиссии № {{ document_number }} от
+          {{document_date|date:"d.m.Y" }} г.
         </p>
         <p class="indent mt-3">Мы, нижеперечисленные:</p>
         <p class="mt-3">
