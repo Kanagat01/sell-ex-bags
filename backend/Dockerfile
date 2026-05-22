@@ -37,4 +37,6 @@ CMD ["uv", "run", "gunicorn", "config.wsgi:application", \
      "--worker-class", "gthread", \
      "--max-requests", "1000", \
      "--max-requests-jitter", "100", \
-     "--log-level", "info"]
+     "--log-level", "info", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-"]

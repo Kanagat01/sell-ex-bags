@@ -18,6 +18,7 @@ class TelegramService:
                 "Telegram не настроен: TELEGRAM_BOT_TOKEN или TELEGRAM_CHAT_ID не заданы")
             return
 
+        proxy = getattr(settings, "TELEGRAM_PROXY", None)
         try:
             response = requests.post(
                 f"https://api.telegram.org/bot{bot_token}/sendMessage",
@@ -27,6 +28,7 @@ class TelegramService:
                     "parse_mode": "HTML",
                     "disable_web_page_preview": True,
                 },
+                proxies={"https": proxy} if proxy else None,
                 timeout=10,
             )
             response.raise_for_status()
