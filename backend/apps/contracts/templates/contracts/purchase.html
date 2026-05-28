@@ -182,7 +182,7 @@
           <span class="point-num">1.1.</span>
           Продавец передает в собственность Покупателя следующее имущество:
           {% for item in items %} 
-          {{ item.brand }} {{ item.model }} {% if not forloop.last %}, {% endif %} 
+          {{ item.brand }} {{ item.model }}{% if not forloop.last %}, {% endif %} 
           {% endfor %} (Далее – Имущество), а
           Покупатель принимает Имущество и уплачивает за него цену в
           соответствии с условиями настоящего Договора
