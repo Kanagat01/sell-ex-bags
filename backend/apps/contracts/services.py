@@ -68,11 +68,15 @@ class DocumentService:
     def _build_context(application: Application, document: Document) -> dict:
         application = Application.objects.select_related("personal_data").prefetch_related("items").get(pk=application.pk)
         personal_data = application.personal_data
-        items = list(application.items.all())
+        items = list(application.items.filter(offered_price__isnull=False))
         total_offered = sum(
-            (item.offered_price for item in items if item.offered_price),
+            (item.offered_price for item in items),
             Decimal("0"),
         )
+        contract_doc = Document.objects.filter(
+            application=application,
+            document_type=DocumentType.CONTRACT,
+        ).first()
         return {
             "seller_fullname": personal_data.full_name,
             "seller_passport": f"{personal_data.passport_series} {personal_data.passport_number}",
@@ -88,6 +92,8 @@ class DocumentService:
             "contract_amount_words": amount_to_words(total_offered),
             "document_date": document.created_at,
             "document_number": document.document_number,
+            "contract_number": contract_doc.document_number if contract_doc else "",
+            "contract_date": contract_doc.created_at if contract_doc else None,
             "account_number": personal_data.account_number,
             "bank_name": personal_data.bank_name,
             "bik": personal_data.bik,

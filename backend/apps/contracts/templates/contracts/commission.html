@@ -206,11 +206,16 @@
             </thead>
 
             <tbody>
+              {% for item in items %}
               <tr>
-                <td>{{ product_brand }} {{ product_model }}</td>
+                <td>{{ item.brand }} {{ item.model }}</td>
                 <td>1</td>
-                <td>{{ contract_amount }} ₽</td>
-                <!-- <td>70 000 ₽</td> -->
+                <td>{{ item.offered_price }} ₽</td>
+              </tr>
+              {% endfor %}
+              <tr>
+                <td>Итого</td>
+                <td colspan="2">{{ contract_amount }} ₽</td>
               </tr>
             </tbody>
           </table>

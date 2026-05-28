@@ -36,6 +36,7 @@ class Document(models.Model):
         db_table = "documents"
         verbose_name = "Документ"
         verbose_name_plural = "Документы"
+        unique_together = [("application", "document_type")]
 
     def __str__(self) -> str:
         return f"{self.get_document_type_display()} — {self.application}"

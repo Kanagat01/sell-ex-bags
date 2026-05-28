@@ -64,12 +64,14 @@ export default function ApplicationDetailPage() {
   const handleApprove = async () => {
     setActionError(null)
     if (!application) return
-    const items = application.items.map((item) => ({
-      id: item.id,
-      offered_price: Number(itemPrices[item.id] ?? 0),
-    }))
-    if (items.some((i) => !i.offered_price || i.offered_price <= 0)) {
-      setActionError("Укажите сумму для каждого товара")
+    const items = application.items
+      .filter((item) => Number(itemPrices[item.id]) > 0)
+      .map((item) => ({
+        id: item.id,
+        offered_price: Number(itemPrices[item.id]),
+      }))
+    if (items.length === 0) {
+      setActionError("Укажите сумму хотя бы для одного изделия")
       return
     }
     try {
@@ -286,12 +288,13 @@ export default function ApplicationDetailPage() {
         title="Одобрить заявку"
       >
         <div className="flex flex-col gap-4">
+          <p className="text-sm text-neutral-500">Оставьте поле пустым чтобы исключить изделие из предложения</p>
           {application.items.map((item) => (
             <Input
               key={item.id}
               label={`${item.brand}${item.model ? ` ${item.model}` : ""} — сумма (₽)`}
               type="number"
-              placeholder="150000"
+              placeholder="Не включать"
               value={itemPrices[item.id] ?? ""}
               onChange={(e) =>
                 setItemPrices((prev) => ({ ...prev, [item.id]: e.target.value }))

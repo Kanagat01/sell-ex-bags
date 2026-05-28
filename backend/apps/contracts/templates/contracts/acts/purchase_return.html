@@ -97,8 +97,8 @@
       <div class="appendix-title">ПРИЛОЖЕНИЕ № 2</div>
       <p class="text-center mt-3">АКТ возврата товара</p>
       <p class="text-center mt-3">
-        по договору купли-продажи № {{ document_number }} от
-        {{document_date|date:"d.m.Y"}} г.
+        по договору купли-продажи № {{ contract_number }} от
+        {{contract_date|date:"d.m.Y" }} г.
       </p>
       <p class="indent mt-3">Мы, нижеперечисленные:</p>
       <p class="mt-3">
@@ -108,15 +108,19 @@
         {{seller_fullname }}, именуемый (-ая) в дальнейшем «Продавец», с другой
         стороны, составили настоящий Акт возврата следующего товара (-ов):
       </p>
+      {% for item in items %}
       <p class="mt-3">
-        <span class="indent">-</span> Сумка женская {{ product_brand }}
-        {{product_model }}. В комплекте сумка.
+        <span class="indent">-</span> {{ item.brand }} {{ item.model }}.
       </p>
+      {% endfor %}
       <p class="mt-3">
         <span class="indent">У</span> Продавца отсутствуют претензии к состоянию
         и комплектности товара (-ов).
       </p>
-      <p class="mt-3 indent">Дата возврата _______________________</p>
+      <p class="mt-3 indent">
+        Дата возврата «{{ document_date|date:"d" }}» {{ document_date|date:"E"}}
+        {{document_date|date:"Y" }} г.
+      </p>
       <div class="mt-6"></div>
       <div class="signatures">
         <div>

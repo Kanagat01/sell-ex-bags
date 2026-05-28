@@ -175,10 +175,7 @@
           </span>
           <div class="br"></div>
           <span class="indent">1.3.</span> Товары, передаваемые Стороной 2:
-          <span class="highlight">
-            сумка женская {{ product_brand }} {{ product_model }}, в комплекте
-            сумка.
-          </span>
+          <span class="highlight">{% for item in items %}{{ item.brand }} {{ item.model }}{% if forloop.last %}.{% else %}, {% endif %}{% endfor %}</span>
           <div class="br"></div>
           <span class="indent">1.4.</span> Стоимость обмениваемого товара,
           передаваемого Стороной 1, составляет

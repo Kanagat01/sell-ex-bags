@@ -49,10 +49,6 @@ services:
       - ./frontend/.env
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
   nginx:
     image: nginx:alpine
     restart: always
@@ -74,3 +70,9 @@ volumes:
   postgres_data:
   media_files:
   static_files:
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
