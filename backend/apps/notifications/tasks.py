@@ -6,9 +6,8 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
-def _short_label(application) -> str:
-    """Первый бренд + '+N изд.' если изделий больше одного."""
-    items = list(application.items.all())
+def _short_label(application, rejected: bool = False) -> str:
+    items = list(application.items.filter(offered_price__isnull=rejected))
     if not items:
         return ""
     label = f"{items[0].brand} {items[0].model}".strip()
@@ -17,10 +16,9 @@ def _short_label(application) -> str:
     return label
 
 
-def _items_text(application, with_price: bool = False) -> str:
-    """Список изделий — одна строка на каждое."""
+def _items_text(application, with_price: bool = False, rejected: bool = False) -> str:
     lines = []
-    for item in application.items.all():
+    for item in application.items.filter(offered_price__isnull=rejected):
         name = f"{item.brand} {item.model}".strip()
         if with_price and item.offered_price:
             lines.append(f"• {name} — {item.offered_price} ₽")
@@ -72,8 +70,8 @@ def send_rejection_notification(application_id: str) -> None:
     application = Application.objects.prefetch_related(
         "items").get(id=application_id)
 
-    short_label = _short_label(application)
-    items_text = _items_text(application)
+    short_label = _short_label(application, rejected=True)
+    items_text = _items_text(application, rejected=True)
 
     EmailService.send_rejection_notification(
         email=application.email,

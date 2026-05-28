@@ -130,8 +130,8 @@
       {% for item in items %}
       <p class="mt-3">
         <span class="indent">-</span> {{ item.brand }} {{ item.model }}. Товар
-        имеет следующие недостатки: {% if item.defects_description
-        %}{{item.defects_description }}{% else %}отсутствуют{% endif %}.
+        имеет следующие недостатки: 
+        {% if item.defects_description %}{{item.defects_description }}{% else %}отсутствуют{% endif %}.
         Недостатки Товара и его общее состояние зафиксировано на фотографиях,
         высланных Комиссионером Комитенту в мессенджере WhatsApp / Telegram «»
         _____________ _______ года.
