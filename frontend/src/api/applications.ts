@@ -1,9 +1,11 @@
 import api from "./client";
 import {
   Application,
+  ApplicationItem,
   CreateApplicationPayload,
   ApproveApplicationPayload,
   RejectApplicationPayload,
+  UpdateItemPayload,
 } from "@/types";
 
 export const createApplication = async (
@@ -14,6 +16,9 @@ export const createApplication = async (
   formData.append("format", payload.format);
   formData.append("phone", payload.phone);
   if (payload.email) formData.append("email", payload.email);
+  if (payload.trade_in_item_url) formData.append("trade_in_item_url", payload.trade_in_item_url);
+  if (payload.trade_in_certificate_amount != null)
+    formData.append("trade_in_certificate_amount", String(payload.trade_in_certificate_amount));
 
   const itemsMeta = payload.items.map((item) => ({
     brand: item.brand,
@@ -94,6 +99,18 @@ export const getAdminContractUrl = async (
 ): Promise<{ url: string }> => {
   const { data } = await api.get<{ url: string }>(
     `/admin/applications/${id}/contract/`,
+  );
+  return data;
+};
+
+export const updateApplicationItem = async (
+  applicationId: string,
+  itemId: string,
+  payload: UpdateItemPayload,
+): Promise<ApplicationItem> => {
+  const { data } = await api.patch<ApplicationItem>(
+    `/admin/applications/${applicationId}/items/${itemId}/`,
+    payload,
   );
   return data;
 };

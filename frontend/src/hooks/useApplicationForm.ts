@@ -11,7 +11,7 @@ import {
   PHOTO_ALLOWED_TYPES,
   getApiError,
 } from "@/utils"
-import { ApplicationCondition } from "@/types"
+import { ApplicationCondition, ApplicationFormat } from "@/types"
 
 const conditionValues = Object.values(ApplicationCondition) as [string, ...string[]]
 
@@ -49,6 +49,8 @@ const schema = z.object({
     ),
   email: z.email("Неверный формат email").optional().or(z.literal("")),
   items: z.array(itemSchema).min(1),
+  trade_in_item_url: z.string().optional(),
+  trade_in_certificate_amount: z.coerce.number().positive().optional(),
 })
 
 export type ItemFormData = z.infer<typeof itemSchema>
@@ -87,11 +89,21 @@ export const useApplicationForm = () => {
 
   const onSubmit: SubmitHandler<ApplicationFormData> = async (data) => {
     if (!selectedFormat) return
+
+    if (selectedFormat === ApplicationFormat.TRADE_IN) {
+      if (!data.trade_in_item_url && !data.trade_in_certificate_amount) {
+        form.setError("trade_in_item_url", { message: "Укажите ссылку на изделие или сумму сертификата" })
+        return
+      }
+    }
+
     try {
       await createApplication({
         format: selectedFormat,
         phone: data.phone,
         email: data.email ?? "",
+        trade_in_item_url: data.trade_in_item_url,
+        trade_in_certificate_amount: data.trade_in_certificate_amount,
         items: data.items.map((item) => ({
           brand: item.brand,
           model: item.model,

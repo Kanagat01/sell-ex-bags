@@ -56,6 +56,8 @@ export interface Application {
   items: ApplicationItem[];
   act_sent: boolean;
   signed_documents: SignedDocument[];
+  trade_in_item_url: string;
+  trade_in_certificate_amount: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -74,6 +76,8 @@ export interface CreateApplicationPayload {
   format: ApplicationFormat;
   phone: string;
   email?: string;
+  trade_in_item_url?: string;
+  trade_in_certificate_amount?: number;
   items: ApplicationItemPayload[];
 }
 
@@ -83,9 +87,18 @@ export interface ItemOfferPrice {
 }
 
 export interface ApproveApplicationPayload {
+  format: ApplicationFormat;
   items: ItemOfferPrice[];
 }
 
 export interface RejectApplicationPayload {
   rejection_reason: string;
+}
+
+export interface UpdateItemPayload {
+  brand?: string;
+  model?: string;
+  size?: string;
+  condition?: ApplicationCondition;
+  defects_description?: string;
 }

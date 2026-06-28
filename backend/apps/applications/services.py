@@ -11,15 +11,19 @@ class ApplicationService:
 
     @staticmethod
     @transaction.atomic
-    def approve(application: Application, items_prices: list) -> Offer:
+    def approve(application: Application, items_prices: list, new_format: str = None) -> Offer:
         price_map = {entry["id"]: entry["offered_price"] for entry in items_prices}
         items = list(ApplicationItem.objects.filter(application=application, id__in=price_map))
         for item in items:
             item.offered_price = price_map[item.id]
         ApplicationItem.objects.bulk_update(items, ["offered_price"])
 
+        update_fields = ["status", "updated_at"]
+        if new_format:
+            application.format = new_format
+            update_fields.append("format")
         application.status = ApplicationStatus.OFFER_SENT
-        application.save(update_fields=["status", "updated_at"])
+        application.save(update_fields=update_fields)
 
         offer = Offer.objects.create(application=application)
 

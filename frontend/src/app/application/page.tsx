@@ -6,8 +6,11 @@ import { useApplicationStore } from "@/store"
 import { useApplicationForm } from "@/hooks"
 import { Button, Input, Select, Textarea, FileUpload } from "@/components/ui"
 import { ErrorMessage } from "@/components/shared"
-import { FORMAT_LABELS, BRANDS_BAGS, BRANDS_WATCHES, ITEM_CATEGORIES, CONDITION_LABELS, ItemCategory } from "@/utils"
-import { ApplicationCondition } from "@/types"
+import {
+  FORMAT_LABELS, BRANDS_BAGS, BRANDS_WATCHES, ITEM_CATEGORIES, CONDITION_LABELS,
+  formatPrice, calcCommissionBreakdown, ItemCategory,
+} from "@/utils"
+import { ApplicationCondition, ApplicationFormat } from "@/types"
 
 const categoryOptions = Object.entries(ITEM_CATEGORIES).map(([value, label]) => ({ value, label }))
 const conditionOptions = Object.values(ApplicationCondition).map((c) => ({ value: c, label: CONDITION_LABELS[c] }))
@@ -17,8 +20,10 @@ export default function ApplicationPage() {
   const { selectedFormat } = useApplicationStore()
   const { form, fields, addItem, removeItem, onSubmit } = useApplicationForm()
   const [categories, setCategories] = useState<(ItemCategory | "")[]>([""])
+  const [tradeInType, setTradeInType] = useState<"url" | "certificate">("url")
 
-  const { register, formState: { errors, isSubmitting }, setValue } = form
+  const { register, formState: { errors, isSubmitting }, setValue, watch } = form
+  const watchedItems = watch("items")
 
   useEffect(() => {
     if (!selectedFormat) router.replace("/")
@@ -114,15 +119,38 @@ export default function ApplicationPage() {
                   {...register(`items.${index}.condition`)}
                 />
 
-                <Input
-                  label="Желаемая цена"
-                  type="number"
-                  placeholder="150000"
-                  hint="В рублях"
-                  error={itemErrors?.desired_price?.message}
-                  required
-                  {...register(`items.${index}.desired_price`)}
-                />
+                <div className="flex flex-col gap-2">
+                  <Input
+                    label="Желаемая цена"
+                    type="number"
+                    placeholder="150000"
+                    hint="В рублях"
+                    error={itemErrors?.desired_price?.message}
+                    required
+                    {...register(`items.${index}.desired_price`)}
+                  />
+                  {selectedFormat === ApplicationFormat.COMMISSION && (() => {
+                    const price = Number(watchedItems?.[index]?.desired_price) || 0
+                    if (price < 15000) return null
+                    const { vat, commissionRate, commission, sellerGets } = calcCommissionBreakdown(price)
+                    return (
+                      <div className="text-sm flex flex-col gap-1 bg-neutral-50 p-3 border border-neutral-200">
+                        <div className="flex justify-between text-neutral-500">
+                          <span>− НДС 5%</span>
+                          <span>− {formatPrice(vat)}</span>
+                        </div>
+                        <div className="flex justify-between text-neutral-500">
+                          <span>− Комиссия ex-bags ({commissionRate * 100}%)</span>
+                          <span>− {formatPrice(commission)}</span>
+                        </div>
+                        <div className="flex justify-between font-medium border-t border-neutral-200 pt-1 mt-1">
+                          <span>Вы получите</span>
+                          <span>{formatPrice(sellerGets)}</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
 
                 <div className="sm:col-span-2">
                   <Textarea
@@ -152,6 +180,59 @@ export default function ApplicationPage() {
         >
           + Добавить изделие
         </button>
+
+        {/* Trade-in предпочтение */}
+        {selectedFormat === ApplicationFormat.TRADE_IN && (
+          <div className="flex flex-col gap-5 border border-neutral-200 p-6">
+            <h2 className="text-2xl font-medium text-center">Что вы хотите получить взамен?</h2>
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input
+                  type="radio"
+                  name="tradeInType"
+                  value="url"
+                  checked={tradeInType === "url"}
+                  onChange={() => {
+                    setTradeInType("url")
+                    setValue("trade_in_certificate_amount", undefined)
+                  }}
+                />
+                Ссылка на изделие
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input
+                  type="radio"
+                  name="tradeInType"
+                  value="certificate"
+                  checked={tradeInType === "certificate"}
+                  onChange={() => {
+                    setTradeInType("certificate")
+                    setValue("trade_in_item_url", "")
+                  }}
+                />
+                Получить сертификат
+              </label>
+            </div>
+            {tradeInType === "url" ? (
+              <Input
+                label="Ссылка на изделие"
+                type="url"
+                placeholder="https://..."
+                error={errors.trade_in_item_url?.message}
+                {...register("trade_in_item_url")}
+              />
+            ) : (
+              <Input
+                label="Сумма сертификата"
+                type="number"
+                placeholder="50000"
+                hint="В рублях"
+                error={(errors.trade_in_certificate_amount as { message?: string } | undefined)?.message}
+                {...register("trade_in_certificate_amount")}
+              />
+            )}
+          </div>
+        )}
 
         {/* Контакты */}
         <div className="flex flex-col gap-4">

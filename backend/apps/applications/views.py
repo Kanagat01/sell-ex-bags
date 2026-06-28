@@ -10,13 +10,15 @@ from rest_framework.views import APIView
 from django.db import transaction
 from apps.notifications.tasks import send_new_application_notification
 
-from .models import Application, ApplicationStatus
+from .models import Application, ApplicationItem, ApplicationStatus
 from .serializers import (
     ApproveApplicationSerializer,
     ApplicationDetailSerializer,
+    ApplicationItemSerializer,
     ApplicationListSerializer,
     CreateApplicationSerializer,
     RejectApplicationSerializer,
+    UpdateApplicationItemSerializer,
 )
 from .services import ApplicationService
 
@@ -96,7 +98,10 @@ class AdminApproveApplicationView(APIView):
         serializer.is_valid(raise_exception=True)
 
         ApplicationService.approve(
-            application, serializer.validated_data["items"])
+            application,
+            serializer.validated_data["items"],
+            new_format=serializer.validated_data.get("format"),
+        )
         return Response({"detail": "Заявка одобрена, уведомление отправлено продавцу"})
 
 
@@ -145,6 +150,27 @@ class AdminContractPreviewView(APIView):
             )
 
         return Response({"url": contract.pdf_file.url})
+
+
+class AdminUpdateApplicationItemView(APIView):
+    """PATCH /api/admin/applications/:pk/items/:item_pk/"""
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+
+    def patch(self, request: Request, pk: int, item_pk: int) -> Response:
+        try:
+            item = ApplicationItem.objects.select_related("application").get(
+                pk=item_pk, application_id=pk
+            )
+        except ApplicationItem.DoesNotExist:
+            return Response({"detail": "Изделие не найдено"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UpdateApplicationItemSerializer(item, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        item.refresh_from_db()
+        return Response(ApplicationItemSerializer(item).data)
 
 
 class AdminSendActView(APIView):

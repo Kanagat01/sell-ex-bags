@@ -10,9 +10,10 @@ import {
   approveApplication,
   rejectApplication,
   sendAct,
+  updateApplicationItem,
 } from "@/api"
-import { Application, ApplicationStatus } from "@/types"
-import { Button, Input, Modal, StatusBadge } from "@/components/ui"
+import { Application, ApplicationCondition, ApplicationFormat, ApplicationItem, ApplicationStatus } from "@/types"
+import { Button, Input, Modal, Select, StatusBadge, Textarea } from "@/components/ui"
 import { PhotoGallery, PageLoader, ErrorMessage } from "@/components/shared"
 import {
   FORMAT_LABELS,
@@ -22,7 +23,11 @@ import {
   formatDateTime,
   formatPhone,
   getApiError,
+  calcCommissionBreakdown,
 } from "@/utils"
+
+const CONDITION_OPTIONS = Object.entries(CONDITION_LABELS).map(([value, label]) => ({ value, label }))
+const FORMAT_OPTIONS = Object.entries(FORMAT_LABELS).map(([value, label]) => ({ value, label }))
 
 const rejectSchema = z.object({
   rejection_reason: z.string().min(1, "Укажите причину"),
@@ -40,7 +45,12 @@ export default function ApplicationDetailPage() {
   const [isRejectOpen, setIsRejectOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [itemPrices, setItemPrices] = useState<Record<string, string>>({})
+  const [approveFormat, setApproveFormat] = useState<ApplicationFormat | "">("")
   const [isSendingAct, setIsSendingAct] = useState(false)
+  const [editingItem, setEditingItem] = useState<ApplicationItem | null>(null)
+  const [editFields, setEditFields] = useState<Record<string, string>>({})
+  const [isEditLoading, setIsEditLoading] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
 
   const rejectForm = useForm<RejectForm>({
     resolver: zodResolver(rejectSchema) as Resolver<RejectForm>,
@@ -64,6 +74,10 @@ export default function ApplicationDetailPage() {
   const handleApprove = async () => {
     setActionError(null)
     if (!application) return
+    if (!approveFormat) {
+      setActionError("Выберите формат сотрудничества")
+      return
+    }
     const items = application.items
       .filter((item) => Number(itemPrices[item.id]) > 0)
       .map((item) => ({
@@ -75,7 +89,7 @@ export default function ApplicationDetailPage() {
       return
     }
     try {
-      await approveApplication(id, { items })
+      await approveApplication(id, { format: approveFormat, items })
       setIsApproveOpen(false)
       await fetchApplication()
     } catch (e: unknown) {
@@ -110,6 +124,45 @@ export default function ApplicationDetailPage() {
   if (isLoading) return <PageLoader />
   if (error || !application) return <ErrorMessage message={error ?? "Ошибка"} />
 
+  const canEdit = [
+    ApplicationStatus.NEW,
+    ApplicationStatus.OFFER_SENT,
+    ApplicationStatus.ACCEPTED,
+  ].includes(application.status)
+
+  const openEdit = (item: ApplicationItem) => {
+    setEditingItem(item)
+    setEditError(null)
+    setEditFields({
+      brand: item.brand,
+      model: item.model ?? "",
+      size: item.size ?? "",
+      condition: item.condition,
+      defects_description: item.defects_description ?? "",
+    })
+  }
+
+  const handleEditSave = async () => {
+    if (!editingItem) return
+    setEditError(null)
+    setIsEditLoading(true)
+    try {
+      await updateApplicationItem(id, editingItem.id, {
+        brand: editFields.brand,
+        model: editFields.model,
+        size: editFields.size,
+        condition: editFields.condition as ApplicationCondition,
+        defects_description: editFields.defects_description,
+      })
+      setEditingItem(null)
+      await fetchApplication()
+    } catch (e: unknown) {
+      setEditError(getApiError(e))
+    } finally {
+      setIsEditLoading(false)
+    }
+  }
+
   const canApproveOrReject = application.status === ApplicationStatus.NEW
   const canSendAcceptanceAct = application.status === ApplicationStatus.CONTRACT_SIGNED
   const canSendReturnAct =
@@ -142,9 +195,16 @@ export default function ApplicationDetailPage() {
         <div className="flex flex-col gap-6">
           {application.items.map((item, idx) => (
             <div key={item.id} className="flex flex-col gap-4 border border-neutral-200 p-5">
-              <h2 className="font-medium">
-                Изделие {idx + 1}: {item.brand}{item.model ? ` ${item.model}` : ""}
-              </h2>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="font-medium">
+                  Изделие {idx + 1}: {item.brand}{item.model ? ` ${item.model}` : ""}
+                </h2>
+                {canEdit && (
+                  <Button variant="secondary" onClick={() => openEdit(item)}>
+                    Редактировать
+                  </Button>
+                )}
+              </div>
               {item.photos.length > 0 && <PhotoGallery photos={item.photos} />}
               <div className="grid grid-cols-2 gap-y-3 text-sm">
                 <span className="text-neutral-500">Бренд</span>
@@ -199,13 +259,35 @@ export default function ApplicationDetailPage() {
             </div>
           </div>
 
+          {/* Trade-in предпочтение */}
+          {application.format === ApplicationFormat.TRADE_IN && (application.trade_in_item_url || application.trade_in_certificate_amount) && (
+            <div className="flex flex-col gap-3 border border-neutral-200 p-5">
+              <h2 className="font-medium">Что хочет получить взамен</h2>
+              <div className="grid grid-cols-2 gap-y-3 text-sm">
+                {application.trade_in_item_url ? (
+                  <>
+                    <span className="text-neutral-500">Ссылка на изделие</span>
+                    <a href={application.trade_in_item_url} target="_blank" rel="noopener noreferrer" className="underline break-all">
+                      {application.trade_in_item_url}
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-neutral-500">Сертификат на сумму</span>
+                    <span>{formatPrice(Number(application.trade_in_certificate_amount))}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Действия */}
           {actionError && <ErrorMessage message={actionError} />}
 
           <div className="flex flex-col gap-3">
             {canApproveOrReject && (
               <>
-                <Button onClick={() => setIsApproveOpen(true)} fullWidth>
+                <Button onClick={() => { setApproveFormat(application.format); setIsApproveOpen(true) }} fullWidth>
                   Одобрить заявку
                 </Button>
                 <Button
@@ -288,30 +370,114 @@ export default function ApplicationDetailPage() {
         title="Одобрить заявку"
       >
         <div className="flex flex-col gap-4">
-          <p className="text-sm text-neutral-500">Оставьте поле пустым чтобы исключить изделие из предложения</p>
-          {application.items.map((item) => (
-            <Input
-              key={item.id}
-              label={`${item.brand}${item.model ? ` ${item.model}` : ""} — сумма (₽)`}
-              type="number"
-              placeholder="Не включать"
-              value={itemPrices[item.id] ?? ""}
-              onChange={(e) =>
-                setItemPrices((prev) => ({ ...prev, [item.id]: e.target.value }))
-              }
-            />
-          ))}
+          <Select
+            label="Формат сотрудничества"
+            options={FORMAT_OPTIONS}
+            value={approveFormat}
+            onChange={(e) => setApproveFormat(e.target.value as ApplicationFormat)}
+            required
+          />
+          <p className="text-sm text-neutral-500">
+            {approveFormat === ApplicationFormat.COMMISSION
+              ? "Укажите сумму продажи — покупатель увидит разбивку с вычетом НДС и комиссии"
+              : approveFormat === ApplicationFormat.TRADE_IN
+              ? "Укажите сумму депозита в магазине"
+              : "Оставьте поле пустым чтобы исключить изделие из предложения"}
+          </p>
+          {application.items.map((item) => {
+            const price = Number(itemPrices[item.id]) || 0
+            const priceLabel =
+              approveFormat === ApplicationFormat.COMMISSION
+                ? "Сумма продажи (₽)"
+                : approveFormat === ApplicationFormat.TRADE_IN
+                ? "Сумма депозита (₽)"
+                : "Сумма выкупа (₽)"
+            return (
+              <div key={item.id} className="flex flex-col gap-2">
+                <Input
+                  label={`${item.brand}${item.model ? ` ${item.model}` : ""} — ${priceLabel}`}
+                  type="number"
+                  placeholder="Не включать"
+                  value={itemPrices[item.id] ?? ""}
+                  onChange={(e) =>
+                    setItemPrices((prev) => ({ ...prev, [item.id]: e.target.value }))
+                  }
+                />
+                {approveFormat === ApplicationFormat.COMMISSION && price >= 15000 && (() => {
+                  const { vat, commissionRate, commission, sellerGets } = calcCommissionBreakdown(price)
+                  return (
+                    <div className="text-sm flex flex-col gap-1 bg-neutral-50 p-3 border border-neutral-200">
+                      <div className="flex justify-between text-neutral-500">
+                        <span>− НДС 5%</span>
+                        <span>− {formatPrice(vat)}</span>
+                      </div>
+                      <div className="flex justify-between text-neutral-500">
+                        <span>− Комиссия ex-bags ({commissionRate * 100}%)</span>
+                        <span>− {formatPrice(commission)}</span>
+                      </div>
+                      <div className="flex justify-between font-medium border-t border-neutral-200 pt-1 mt-1">
+                        <span>Продавец получит</span>
+                        <span>{formatPrice(sellerGets)}</span>
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
+            )
+          })}
           <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsApproveOpen(false)}
-              fullWidth
-            >
+            <Button type="button" variant="secondary" onClick={() => setIsApproveOpen(false)} fullWidth>
               Отмена
             </Button>
             <Button onClick={handleApprove} fullWidth>
               Одобрить
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Модалка редактирования изделия */}
+      <Modal
+        isOpen={!!editingItem}
+        onClose={() => setEditingItem(null)}
+        title="Редактировать изделие"
+      >
+        <div className="flex flex-col gap-4">
+          <Input
+            label="Бренд"
+            value={editFields.brand ?? ""}
+            onChange={(e) => setEditFields((p) => ({ ...p, brand: e.target.value }))}
+            required
+          />
+          <Input
+            label="Модель"
+            value={editFields.model ?? ""}
+            onChange={(e) => setEditFields((p) => ({ ...p, model: e.target.value }))}
+          />
+          <Input
+            label="Размер"
+            value={editFields.size ?? ""}
+            onChange={(e) => setEditFields((p) => ({ ...p, size: e.target.value }))}
+          />
+          <Select
+            label="Состояние"
+            options={CONDITION_OPTIONS}
+            value={editFields.condition ?? ""}
+            onChange={(e) => setEditFields((p) => ({ ...p, condition: e.target.value }))}
+          />
+          <Textarea
+            label="Изъяны"
+            value={editFields.defects_description ?? ""}
+            onChange={(e) => setEditFields((p) => ({ ...p, defects_description: e.target.value }))}
+            rows={3}
+          />
+{editError && <p className="text-sm text-red-500">{editError}</p>}
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setEditingItem(null)} fullWidth>
+              Отмена
+            </Button>
+            <Button onClick={handleEditSave} isLoading={isEditLoading} fullWidth>
+              Сохранить
             </Button>
           </div>
         </div>

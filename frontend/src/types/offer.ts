@@ -8,6 +8,8 @@ export interface OfferItem {
 
 export interface Offer {
   format: ApplicationFormat;
+  trade_in_item_url: string;
+  trade_in_certificate_amount: string | null;
   items: OfferItem[];
   expires_at: string;
 }

@@ -36,8 +36,11 @@ class CreateApplicationSerializer(serializers.Serializer):
 
     format = serializers.ChoiceField(choices=ApplicationFormat.choices)
     phone = serializers.CharField(max_length=20)
-    email = serializers.EmailField(
-        required=False, allow_blank=True, default="")
+    email = serializers.EmailField(required=False, allow_blank=True, default="")
+    trade_in_item_url = serializers.URLField(required=False, allow_blank=True, default="")
+    trade_in_certificate_amount = serializers.DecimalField(
+        max_digits=12, decimal_places=2, required=False, allow_null=True, default=None
+    )
     items_data = serializers.CharField()
 
     def validate_items_data(self, value):
@@ -132,7 +135,9 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
         model = Application
         fields = [
             "id", "format", "rejection_reason", "phone", "email",
-            "status", "items", "act_sent", "signed_documents", "created_at", "updated_at",
+            "status", "items", "act_sent", "signed_documents",
+            "trade_in_item_url", "trade_in_certificate_amount",
+            "created_at", "updated_at",
         ]
 
 
@@ -144,6 +149,7 @@ class ItemOfferPriceSerializer(serializers.Serializer):
 
 class ApproveApplicationSerializer(serializers.Serializer):
     """Администратор одобряет заявку и указывает суммы для каждого изделия"""
+    format = serializers.ChoiceField(choices=ApplicationFormat.choices)
     items = ItemOfferPriceSerializer(many=True, min_length=1)
 
 
@@ -155,3 +161,9 @@ class RejectApplicationSerializer(serializers.Serializer):
         required=False,
         allow_blank=True
     )
+
+
+class UpdateApplicationItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ApplicationItem
+        fields = ["brand", "model", "size", "condition", "defects_description"]

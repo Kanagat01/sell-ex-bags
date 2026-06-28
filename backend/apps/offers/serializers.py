@@ -6,11 +6,16 @@ class OfferPublicSerializer(serializers.ModelSerializer):
     """Данные предложения для продавца по токену"""
 
     format = serializers.CharField(source="application.format")
+    trade_in_item_url = serializers.CharField(source="application.trade_in_item_url")
+    trade_in_certificate_amount = serializers.DecimalField(
+        source="application.trade_in_certificate_amount",
+        max_digits=12, decimal_places=2, allow_null=True,
+    )
     items = serializers.SerializerMethodField()
 
     class Meta:
         model = Offer
-        fields = ["format", "items", "expires_at"]
+        fields = ["format", "trade_in_item_url", "trade_in_certificate_amount", "items", "expires_at"]
 
     def get_items(self, obj):
         return [

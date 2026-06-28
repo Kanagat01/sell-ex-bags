@@ -36,6 +36,8 @@ class Application(models.Model):
     phone = models.CharField(max_length=20)
     email = models.EmailField(blank=True)
     rejection_reason = models.TextField(blank=True)
+    trade_in_item_url = models.URLField(max_length=500, blank=True)
+    trade_in_certificate_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
