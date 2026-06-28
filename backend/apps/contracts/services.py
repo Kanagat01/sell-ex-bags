@@ -14,6 +14,12 @@ from apps.notifications.tasks import send_document_signed_notification
 from .models import Document, DocumentType, SmsCode
 
 
+# Папка со статикой шаблонов (логотип, шрифт, печать, подпись).
+# Используется как base_url для WeasyPrint, чтобы относительные пути в
+# шаблонах (<img src="logo.png">, @font-face url("...")) разрешались с диска.
+ASSETS_BASE_URL = (settings.BASE_DIR / "apps" / "contracts" / "assets").as_uri() + "/"
+
+
 CONTRACT_TEMPLATE_MAP = {
     ApplicationFormat.PURCHASE: "contracts/purchase.html",
     ApplicationFormat.TRADE_IN: "contracts/tradein.html",
@@ -115,7 +121,7 @@ class DocumentService:
 
         context = DocumentService._build_context(application, document)
         html_string = render_to_string(CONTRACT_TEMPLATE_MAP[application.format], context)
-        pdf_bytes = HTML(string=html_string).write_pdf()
+        pdf_bytes = HTML(string=html_string, base_url=ASSETS_BASE_URL).write_pdf()
         document.pdf_file.save(f"contract_{application.pk}.pdf", BytesIO(pdf_bytes), save=True)
         return document
 
@@ -135,7 +141,7 @@ class DocumentService:
         )
         context = DocumentService._build_context(application, document)
         html_string = render_to_string(format_acts[act_type], context)
-        pdf_bytes = HTML(string=html_string).write_pdf()
+        pdf_bytes = HTML(string=html_string, base_url=ASSETS_BASE_URL).write_pdf()
         document.pdf_file.save(f"act_{act_type}_{application.pk}.pdf", BytesIO(pdf_bytes), save=True)
         return document
 

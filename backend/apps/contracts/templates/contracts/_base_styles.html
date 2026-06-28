@@ -1,0 +1,93 @@
+{% comment %}
+Общие стили для всех договоров и актов. Подключается внутри <style>:
+  <style>{% include "contracts/_base_styles.html" %} ... локальные переопределения ... </style>
+Здесь только то, что идентично во ВСЕХ шаблонах. Всё, что различается
+(font-size, @page main, отступы, положение печати/подписи и т.д.) — в локальном
+<style> каждого шаблона после include.
+{% endcomment %}
+/* === SHARED FONT === */
+/* Путь разрешается через base_url (apps/contracts/assets) в services.py */
+@font-face {
+  font-family: "Suisse Intl";
+  src: url("SuisseIntl-Regular.otf") format("opentype");
+}
+
+/* === SHARED PAGE === */
+@page appendix {
+  size: A4 portrait;
+  margin: 17.5mm 18mm 13mm;
+}
+
+/* === SHARED BODY (font-size задаётся локально) === */
+body {
+  /* "Suisse Intl",  */
+  font-family: "Times New Roman", Times, serif;
+  font-weight: 300;
+  line-height: 1.2;
+  text-align: justify;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* === SHARED LOGO === */
+.doc-logo {
+  text-align: center;
+  margin-bottom: 0;
+}
+.doc-logo + p {
+  margin-top: 0;
+}
+.doc-logo img {
+  width: 57mm;
+}
+
+/* === SHARED UTILITIES === */
+.text-center {
+  text-align: center;
+}
+.mt-3 {
+  margin-top: 12pt;
+}
+.mt-6 {
+  margin-top: 24pt;
+}
+.flex {
+  display: flex;
+}
+.justify-between {
+  justify-content: space-between;
+}
+
+/* === SHARED SIGNATURE / STAMP (left задаётся локально) === */
+.signature-line {
+  position: relative;
+  display: inline-block;
+  break-inside: avoid;
+}
+.sign-img {
+  position: absolute;
+  bottom: -10mm;
+  width: 34.4mm;
+}
+.stamp-img {
+  position: absolute;
+  bottom: -25mm;
+  width: 44.9mm;
+}
+
+/* === SHARED APPENDIX (font-size задаётся локально) === */
+.appendix {
+  page: appendix;
+  column-count: 1;
+}
+.signatures {
+  display: flex;
+  gap: 1.5mm;
+}
+.signatures > div {
+  flex: 1;
+}
+.signatures .stamp-img {
+  bottom: -35mm;
+  left: -10mm;
+}
