@@ -131,6 +131,9 @@ TELEGRAM_PROXY = env("TELEGRAM_PROXY", default="")
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="")
 TELEGRAM_CHAT_ID = env("TELEGRAM_CHAT_ID", default="")
 
+# Service-to-service secret (NestJS → Django)
+SELL_SERVICE_SECRET = env("SELL_SERVICE_SECRET", default="")
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

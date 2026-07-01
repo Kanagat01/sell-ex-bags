@@ -13,8 +13,8 @@ export const Header = () => {
   return (
     <header className="w-full border-b border-neutral-200">
       <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
-        <Link href="/" className="text-4xl font-medium tracking-tight">
-          ex(bags)
+        <Link href="/" className="inline-flex items-center">
+          <img src="/logo.png" alt="EX BAGS" className="h-8 w-auto" />
         </Link>
         {isAdminPath && <div className="flex items-center justify-between gap-6">
           <nav className="flex items-center gap-4">

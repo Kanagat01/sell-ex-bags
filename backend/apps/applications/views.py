@@ -173,6 +173,28 @@ class AdminUpdateApplicationItemView(APIView):
         return Response(ApplicationItemSerializer(item).data)
 
 
+class ServiceApplicationsByPhoneView(ListAPIView):
+    """GET /api/service/applications/?phone=X — для NestJS, защищён секретом"""
+
+    permission_classes = [AllowAny]
+    serializer_class = ApplicationDetailSerializer
+
+    def get_queryset(self) -> QuerySet:
+        from django.conf import settings
+        from rest_framework.exceptions import PermissionDenied
+        secret = self.request.headers.get("X-Service-Secret", "")
+        if not secret or secret != settings.SELL_SERVICE_SECRET:
+            raise PermissionDenied()
+
+        phone = self.request.query_params.get("phone", "").strip()
+        if not phone:
+            return Application.objects.none()
+
+        return Application.objects.filter(phone=phone).prefetch_related(
+            "items", "items__photos", "documents"
+        )
+
+
 class AdminSendActView(APIView):
     """POST /api/admin/applications/:id/send-act/"""
 

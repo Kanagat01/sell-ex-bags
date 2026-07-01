@@ -4,6 +4,8 @@ from .views import *
 urlpatterns = [
     # Публичный
     path("applications/", CreateApplicationView.as_view(), name="application-create"),
+    # Сервисный (NestJS → Django, защита X-Service-Secret)
+    path("service/applications/", ServiceApplicationsByPhoneView.as_view(), name="service-applications-by-phone"),
     # Админ
     path("admin/applications/", AdminApplicationListView.as_view(), name="admin-application-list"),
     path("admin/applications/<int:pk>/", AdminApplicationDetailView.as_view(), name="admin-application-detail"),
