@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { useForm, SubmitHandler, Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -11,6 +11,7 @@ import {
   rejectApplication,
   sendAct,
   updateApplicationItem,
+  deleteApplication,
 } from "@/api"
 import { Application, ApplicationCondition, ApplicationFormat, ApplicationItem, ApplicationStatus } from "@/types"
 import { Button, Input, Modal, Select, StatusBadge, Textarea } from "@/components/ui"
@@ -37,8 +38,11 @@ type RejectForm = z.infer<typeof rejectSchema>
 
 export default function ApplicationDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const router = useRouter()
 
   const [application, setApplication] = useState<Application | null>(null)
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isApproveOpen, setIsApproveOpen] = useState(false)
@@ -118,6 +122,19 @@ export default function ApplicationDetailPage() {
       setActionError(getApiError(e, "Ошибка при отправке акта"))
     } finally {
       setIsSendingAct(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    setActionError(null)
+    setIsDeleting(true)
+    try {
+      await deleteApplication(id)
+      router.push("/admin/applications")
+    } catch (e: unknown) {
+      setActionError(getApiError(e, "Ошибка при удалении заявки"))
+      setIsDeleting(false)
+      setIsDeleteOpen(false)
     }
   }
 
@@ -359,9 +376,50 @@ export default function ApplicationDetailPage() {
                 </Button>
               )
             )}
+
+            <div className="border-t border-neutral-200 pt-3">
+              <Button
+                variant="danger"
+                onClick={() => setIsDeleteOpen(true)}
+                fullWidth
+              >
+                Удалить заявку
+              </Button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Модалка удаления */}
+      <Modal
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        title="Удалить заявку"
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-neutral-600">
+            Заявка будет удалена безвозвратно вместе со всеми фото и документами.
+            Продолжить?
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => setIsDeleteOpen(false)}
+              fullWidth
+            >
+              Отмена
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleDelete}
+              isLoading={isDeleting}
+              fullWidth
+            >
+              Удалить
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Модалка одобрения */}
       <Modal

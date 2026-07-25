@@ -61,6 +61,10 @@ export const getApplication = async (id: string): Promise<Application> => {
   return data;
 };
 
+export const deleteApplication = async (id: string): Promise<void> => {
+  await api.delete(`/admin/applications/${id}/`);
+};
+
 export const approveApplication = async (
   id: string,
   payload: ApproveApplicationPayload,

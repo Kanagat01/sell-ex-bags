@@ -1,6 +1,6 @@
 from django.db.models import QuerySet
 from rest_framework import status
-from rest_framework.generics import ListAPIView, RetrieveAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView, RetrieveDestroyAPIView
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.request import Request
@@ -70,8 +70,10 @@ class AdminApplicationListView(ListAPIView):
         return queryset
 
 
-class AdminApplicationDetailView(RetrieveAPIView):
-    """GET /api/admin/applications/:id — детали заявки"""
+class AdminApplicationDetailView(RetrieveDestroyAPIView):
+    """GET /api/admin/applications/:id — детали заявки
+    DELETE /api/admin/applications/:id — удаление заявки (каскадно удаляет
+    изделия, фото и документы; медиафайлы стираются сигналами post_delete)"""
 
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdminUser]
