@@ -2,7 +2,8 @@
 
 import { Modal } from "@/components/ui"
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useApplicationStore } from "@/store"
 
 const steps = [
   {
@@ -32,6 +33,17 @@ const brands = [
 export default function HomePage() {
   const [comissionModal, setComissionModal] = useState(false);
   const [brandList, setBrandList] = useState(false);
+  const setPrefill = useApplicationStore((s) => s.setPrefill);
+
+  // window.location вместо useSearchParams() — тот требует Suspense-границы
+  // при статической генерации (Next.js 16), а нам достаточно прочитать это
+  // один раз после монтирования, серверный рендер тут ни при чём.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const phone = params.get("phone");
+    const email = params.get("email");
+    if (phone || email) setPrefill(phone ?? "", email ?? "");
+  }, [setPrefill]);
 
   const benefits = [
     {

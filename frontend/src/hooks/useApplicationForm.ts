@@ -68,13 +68,13 @@ const emptyItem = (): ItemFormData => ({
 
 export const useApplicationForm = () => {
   const router = useRouter()
-  const { selectedFormat } = useApplicationStore()
+  const { selectedFormat, prefillPhone, prefillEmail } = useApplicationStore()
 
   const form = useForm<ApplicationFormData, unknown, ApplicationFormData>({
     resolver: zodResolver(schema) as Resolver<ApplicationFormData>,
     defaultValues: {
-      phone: "",
-      email: "",
+      phone: prefillPhone,
+      email: prefillEmail,
       items: [emptyItem()],
     },
   })

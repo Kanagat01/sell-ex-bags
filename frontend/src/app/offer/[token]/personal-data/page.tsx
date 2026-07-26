@@ -1,10 +1,11 @@
 "use client"
 
+import { useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useForm, SubmitHandler, Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { submitPersonalData } from "@/api"
+import { submitPersonalData, getPersonalDataPrefill } from "@/api"
 import { PersonalDataPayload } from "@/types"
 import { Button, Input, Textarea } from "@/components/ui"
 import { ErrorMessage } from "@/components/shared"
@@ -55,10 +56,20 @@ export default function PersonalDataPage() {
     register,
     handleSubmit,
     setError,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<PersonalDataForm>({
     resolver: zodResolver(schema) as Resolver<PersonalDataForm>,
   })
+
+  // Префилл для повторного продавца — берём последние сохранённые под этим
+  // же телефоном данные (см. OfferService.get_personal_data_prefill на
+  // бэкенде), поля остаются редактируемыми.
+  useEffect(() => {
+    getPersonalDataPrefill(token).then((data) => {
+      if (Object.keys(data).length) reset(data as PersonalDataForm)
+    }).catch(() => {})
+  }, [token, reset])
 
   const onSubmit: SubmitHandler<PersonalDataForm> = async (data) => {
     try {

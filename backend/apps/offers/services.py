@@ -42,6 +42,21 @@ class OfferService:
         offer.save(update_fields=["is_used"])
 
     @staticmethod
+    def get_personal_data_prefill(application: Application) -> PersonalData | None:
+        """Для префилла формы: свои уже сохранённые данные по этой заявке,
+        иначе — последние сохранённые под тем же телефоном с другой заявки
+        (повторный продавец)."""
+        own = PersonalData.objects.filter(application=application).first()
+        if own:
+            return own
+        return (
+            PersonalData.objects
+            .filter(application__phone=application.phone)
+            .order_by("-created_at")
+            .first()
+        )
+
+    @staticmethod
     @transaction.atomic
     def save_personal_data(application: Application, data: dict) -> PersonalData:
         """Сохранить персональные данные и создать договор"""

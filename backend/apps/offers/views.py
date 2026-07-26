@@ -55,9 +55,21 @@ class OfferDeclineView(APIView):
 
 
 class PersonalDataView(APIView):
-    """POST /api/offer/:token/personal-data"""
+    """GET/POST /api/offer/:token/personal-data"""
 
     permission_classes = [AllowAny]
+
+    def get(self, request: Request, token: str) -> Response:
+        try:
+            offer = Offer.objects.select_related("application").get(token=token)
+        except Offer.DoesNotExist:
+            return Response({"detail": "Не найдено"}, status=status.HTTP_404_NOT_FOUND)
+
+        prefill = OfferService.get_personal_data_prefill(offer.application)
+        if not prefill:
+            return Response({})
+
+        return Response(PersonalDataSerializer(prefill).data)
 
     def post(self, request: Request, token: str) -> Response:
         try:

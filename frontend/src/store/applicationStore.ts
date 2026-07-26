@@ -6,6 +6,14 @@ interface ApplicationState {
   selectedFormat: ApplicationFormat | null
   setSelectedFormat: (format: ApplicationFormat) => void
 
+  // Префилл телефона/email из query-параметров (переход с ex-bags.ru для
+  // залогиненного пользователя) — читается один раз на главной, переживает
+  // переход через /application/types на /application без пробрасывания
+  // параметров через каждый Link.
+  prefillPhone: string
+  prefillEmail: string
+  setPrefill: (phone: string, email: string) => void
+
   // Список заявок в админке
   applications: Application[]
   setApplications: (applications: Application[]) => void
@@ -35,6 +43,10 @@ const defaultFilters = {
 export const useApplicationStore = create<ApplicationState>((set) => ({
   selectedFormat: null,
   setSelectedFormat: (format) => set({ selectedFormat: format }),
+
+  prefillPhone: "",
+  prefillEmail: "",
+  setPrefill: (phone, email) => set({ prefillPhone: phone, prefillEmail: email }),
 
   applications: [],
   setApplications: (applications) => set({ applications }),

@@ -1,6 +1,13 @@
 import api from "./client"
 import { Offer, PersonalDataPayload } from "@/types"
 
+export const getPersonalDataPrefill = async (
+  token: string
+): Promise<Partial<PersonalDataPayload>> => {
+  const { data } = await api.get<Partial<PersonalDataPayload>>(`/offer/${token}/personal-data/`)
+  return data
+}
+
 export const getOffer = async (token: string): Promise<Offer> => {
   const { data } = await api.get<Offer>(`/offer/${token}/`)
   return data
