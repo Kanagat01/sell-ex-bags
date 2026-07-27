@@ -1,47 +1,34 @@
 import logging
-import requests
+
 from django.conf import settings
+from smsaero import SmsAero, SmsAeroException
 
 logger = logging.getLogger(__name__)
 
 
 class SmsService:
-    BASE_URL = "https://lcab.smsint.ru/json/v1.0"
+    @staticmethod
+    def _client() -> SmsAero:
+        return SmsAero(
+            settings.SMSAERO_EMAIL,
+            settings.SMSAERO_API_KEY,
+            # signature=settings.SMSAERO_SIGN,
+        )
 
     @classmethod
     def _send(cls, phone: str, text: str) -> None:
         try:
-            logger.info(f"Отправляем SMS на {phone}: {text}")
-            phone = phone.lstrip("+")
+            number = int("".join(ch for ch in phone if ch.isdigit()))
+            logger.info(f"Отправляем SMS на {number}: {text}")
 
-            response = requests.post(
-                f"{cls.BASE_URL}/sms/send/text",
-                headers={
-                    "X-Token": settings.SMS_INT_API_KEY,
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "messages": [
-                        {
-                            "recipient": phone,
-                            "text": text,
-                        }
-                    ],
-                },
-                timeout=10,
-            )
+            result = cls._client().send_sms(number, text)
+            logger.info(f"SMS успешно отправлен: {result}")
 
-            response.raise_for_status()
-            data = response.json()
-
-            if not data.get("success"):
-                error = data.get("error", {})
-                logger.error(f"SMS не отправлен: {error}")
-            else:
-                logger.info(f"SMS успешно отправлен: {data}")
-
-        except requests.RequestException as e:
+        except SmsAeroException as e:
             logger.error(f"SMS отправка не удалась: {e}")
+        except Exception as e:
+            logger.error(
+                f"SMS отправка не удалась (непредвиденная ошибка): {e}")
 
     @classmethod
     def send_offer_notification(cls, phone: str, short_label: str, amount: float, offer_url: str) -> None:

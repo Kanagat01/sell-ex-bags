@@ -18,6 +18,7 @@ dependencies = [
     "psycopg[binary]>=3.3.3",
     "redis>=7.3.0",
     "requests[socks]>=2.32.5",
+    "smsaero-api>=3.2.0",
     "weasyprint>=68.1",
 ]
 
