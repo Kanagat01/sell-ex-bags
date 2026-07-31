@@ -19,21 +19,18 @@ class TelegramService:
             return
 
         proxy = getattr(settings, "TELEGRAM_PROXY", None)
-        try:
-            response = requests.post(
-                f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                json={
-                    "chat_id": chat_id,
-                    "text": text,
-                    "parse_mode": "HTML",
-                    "disable_web_page_preview": True,
-                },
-                proxies={"https": proxy} if proxy else None,
-                timeout=10,
-            )
-            response.raise_for_status()
-        except requests.RequestException as e:
-            logger.error(f"Telegram: сообщение не отправлено — {e}")
+        response = requests.post(
+            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+            json={
+                "chat_id": chat_id,
+                "text": text,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True,
+            },
+            proxies={"https": proxy} if proxy else None,
+            timeout=10,
+        )
+        response.raise_for_status()
 
     @staticmethod
     def send_new_application(application) -> None:

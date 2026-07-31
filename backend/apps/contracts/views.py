@@ -1,8 +1,12 @@
+import logging
+
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+logger = logging.getLogger(__name__)
 
 from .models import Document
 from .serializers import ConfirmSignatureSerializer
@@ -40,7 +44,14 @@ class RequestSmsCodeView(APIView):
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        SmsService.send_sign_code(document.application.phone, sms_code.code)
+        try:
+            SmsService.send_sign_code(document.application.phone, sms_code.code)
+        except Exception:
+            logger.exception("Не удалось отправить SMS-код подписания")
+            return Response(
+                {"detail": "Не удалось отправить SMS. Попробуйте ещё раз."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
         return Response({"detail": "Код отправлен"})
 
 

@@ -1,7 +1,7 @@
 import logging
 
 from django.conf import settings
-from smsaero import SmsAero, SmsAeroException
+from smsaero import SmsAero
 
 logger = logging.getLogger(__name__)
 
@@ -17,18 +17,16 @@ class SmsService:
 
     @classmethod
     def _send(cls, phone: str, text: str) -> None:
-        try:
-            number = int("".join(ch for ch in phone if ch.isdigit()))
-            logger.info(f"Отправляем SMS на {number}: {text}")
+        """Отправляет SMS. Бросает исключение при сбое — вызывающая задача
+        должна поймать/повторить. Тихо пропускает только если сервис не настроен."""
+        if not settings.SMSAERO_EMAIL or not settings.SMSAERO_API_KEY:
+            logger.warning("SMSAero не настроен (SMSAERO_EMAIL/SMSAERO_API_KEY) — SMS пропущен")
+            return
 
-            result = cls._client().send_sms(number, text)
-            logger.info(f"SMS успешно отправлен: {result}")
-
-        except SmsAeroException as e:
-            logger.error(f"SMS отправка не удалась: {e}")
-        except Exception as e:
-            logger.error(
-                f"SMS отправка не удалась (непредвиденная ошибка): {e}")
+        number = int("".join(ch for ch in phone if ch.isdigit()))
+        logger.info(f"Отправляем SMS на {number}: {text}")
+        result = cls._client().send_sms(number, text)
+        logger.info(f"SMS успешно отправлен: {result}")
 
     @classmethod
     def send_offer_notification(cls, phone: str, short_label: str, amount: float, offer_url: str) -> None:

@@ -1,3 +1,5 @@
+import logging
+
 from django.db.models import QuerySet
 from rest_framework import status
 from rest_framework.generics import ListAPIView, RetrieveAPIView, RetrieveDestroyAPIView
@@ -21,6 +23,8 @@ from .serializers import (
     UpdateApplicationItemSerializer,
 )
 from .services import ApplicationService
+
+logger = logging.getLogger(__name__)
 
 
 class CreateApplicationView(APIView):
@@ -224,11 +228,18 @@ class AdminSendActView(APIView):
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         sign_url = f"{settings.FRONTEND_URL}/sign/{document.sign_token}"
-        SmsService.send_sign_link(
-            phone=application.phone,
-            document_type_display=document.get_document_type_display(),
-            sign_url=sign_url,
-        )
+        try:
+            SmsService.send_sign_link(
+                phone=application.phone,
+                document_type_display=document.get_document_type_display(),
+                sign_url=sign_url,
+            )
+        except Exception:
+            logger.exception("Не удалось отправить SMS со ссылкой на подписание акта")
+            return Response(
+                {"detail": "Акт сформирован, но SMS со ссылкой не отправлено. Попробуйте отправить повторно."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
         return Response({
             "detail": "Акт сформирован, ссылка для подписания отправлена продавцу",

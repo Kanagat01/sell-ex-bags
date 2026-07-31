@@ -11,6 +11,14 @@ services:
     image: redis:7-alpine
     restart: always
 
+  autossh:
+    build: ./autossh
+    restart: always
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./proxy_server_key:/run/secrets/proxy_key:ro
+
   backend:
     build: ./backend
     restart: always

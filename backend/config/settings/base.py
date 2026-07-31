@@ -119,6 +119,8 @@ EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@ex-bags.ru")
+# Не даём SMTP-соединению висеть бесконечно и держать воркер
+EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
 
 # Offer token TTL (часы)
 OFFER_TOKEN_TTL_HOURS = 72
