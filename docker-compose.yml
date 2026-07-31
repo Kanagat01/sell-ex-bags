@@ -24,6 +24,8 @@ services:
     restart: always
     env_file:
       - ./backend/.env
+    cap_add:
+      - SYS_PTRACE
     depends_on:
       - db
       - redis
