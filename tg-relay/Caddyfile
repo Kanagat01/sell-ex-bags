@@ -1,0 +1,5 @@
+# Caddy сам получит и продлит TLS-сертификат Let's Encrypt для RELAY_DOMAIN.
+# Требуется: A-запись RELAY_DOMAIN → IP сервера, открытые порты 80 и 443.
+{$RELAY_DOMAIN} {
+	reverse_proxy tg-relay:8080
+}

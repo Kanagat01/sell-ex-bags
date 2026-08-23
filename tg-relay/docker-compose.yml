@@ -1,0 +1,27 @@
+services:
+  tg-relay:
+    build: .
+    restart: always
+    env_file:
+      - .env
+    expose:
+      - "8080"          # только внутри docker-сети, наружу НЕ публикуем
+
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    env_file:
+      - .env            # берёт RELAY_DOMAIN для Caddyfile
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - tg-relay
+
+volumes:
+  caddy_data:
+  caddy_config:

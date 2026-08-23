@@ -130,10 +130,10 @@ SMS_CODE_TTL_MINUTES = 5
 SMS_CODE_MAX_ATTEMPTS = 3
 SMS_CODE_MAX_SENDS_PER_DAY = 3
 
-# Telegram
-TELEGRAM_PROXY = env("TELEGRAM_PROXY", default="")
-TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="")
-TELEGRAM_CHAT_ID = env("TELEGRAM_CHAT_ID", default="")
+# Telegram — уведомления шлём через внешний релей (tg-relay) на сервере,
+# где Telegram доступен. Токен/чат живут на релее, здесь их больше нет.
+TELEGRAM_RELAY_URL = env("TELEGRAM_RELAY_URL", default="")
+TELEGRAM_RELAY_SECRET = env("TELEGRAM_RELAY_SECRET", default="")
 
 # Service-to-service secret (NestJS → Django)
 SELL_SERVICE_SECRET = env("SELL_SERVICE_SECRET", default="")

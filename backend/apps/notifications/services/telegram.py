@@ -10,24 +10,20 @@ class TelegramService:
 
     @staticmethod
     def _send(text: str) -> None:
-        bot_token = getattr(settings, "TELEGRAM_BOT_TOKEN", "")
-        chat_id = getattr(settings, "TELEGRAM_CHAT_ID", "")
+        """Шлёт уведомление через tg-relay (на сервере, где Telegram доступен).
+        Бросает исключение при сбое — celery-задача повторит по retry.
+        Тихо пропускает, только если релей не настроен."""
+        relay_url = getattr(settings, "TELEGRAM_RELAY_URL", "")
+        relay_secret = getattr(settings, "TELEGRAM_RELAY_SECRET", "")
 
-        if not bot_token or not chat_id:
-            logger.warning(
-                "Telegram не настроен: TELEGRAM_BOT_TOKEN или TELEGRAM_CHAT_ID не заданы")
+        if not relay_url:
+            logger.warning("TELEGRAM_RELAY_URL не задан — уведомление в Telegram пропущено")
             return
 
-        proxy = getattr(settings, "TELEGRAM_PROXY", None)
         response = requests.post(
-            f"https://api.telegram.org/bot{bot_token}/sendMessage",
-            json={
-                "chat_id": chat_id,
-                "text": text,
-                "parse_mode": "HTML",
-                "disable_web_page_preview": True,
-            },
-            proxies={"https": proxy} if proxy else None,
+            f"{relay_url.rstrip('/')}/notify",
+            json={"text": text},
+            headers={"X-Secret": relay_secret},
             timeout=10,
         )
         response.raise_for_status()
