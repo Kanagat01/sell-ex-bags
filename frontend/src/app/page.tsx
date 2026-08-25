@@ -70,166 +70,128 @@ export default function HomePage() {
 
   const formats = [
     {
+      n: "01 · выкуп",
       title: "Выкуп",
       text: "Мы согласуем условия продажи, проверим аксессуар на подлинность и выкупим в течении 48 часов по предложенной нами стоимости.",
     },
     {
+      n: "02 · trade-in",
       title: "Trade-In",
       text: "Мы оценим ваше изделие и предложим стоимость, которая будет являться депозитом для покупки аксессуара из ассортимента (ex)bags.",
-      // link: "Подробнее",
     },
     {
+      n: "03 · реализация",
       title: "Реализация",
       text: "Мы согласуем с вами стоимость изделия, проведём предпродажную подготовку и опубликуем товар на сайте (ex)bags. После того, как ваш лот будет продан, вы получите оплату на счёт.",
-      note: <>*при продаже аксессуара, ранее купленного в (ex)bags, действует специальная комиссия -5% от стандартной. <span className="underline cursor-pointer" onClick={() => setComissionModal(true)}>Размер комиссии зависит от стоимости изделия.</span></>,
     },
   ]
 
-  const mid = Math.ceil(brands.length / 2);        // середина списка
+  const mid = Math.ceil(brands.length / 2);
   const firstColumn = brands.slice(0, mid);
   const secondColumn = brands.slice(mid);
 
   return (
-    <div className="flex flex-col">
+    <div className="dz-container dz-container--wide">
 
-      {/* Hero */}
-      <section className="relative min-h-130 flex items-center overflow-hidden bg-[url('/main-bg.png')] bg-cover bg-center">
-        {/* bg-[#bdbab3] md: */}
-        <div className="relative z-10 w-full max-w-6xl mx-auto px-6 sm:px-12 py-16 grid grid-cols-1 md:grid-cols-[9fr_3fr] gap-12 items-center">
-          <div className="flex flex-col gap-15">
-            <h1 className="text-3xl md:text-4xl font-medium leading-tight tracking-tight">
-              Подарите аксессуарам новую жизнь
-            </h1>
-            <p className="text-neutral-600 text-2xl leading-relaxed max-w-lg">
-              Мы поможем быстро и легко освободить гардероб и найти покупателей для ваших сумок.
-            </p>
-            <Link
-              href="/application/types"
-              className={
-                "inline-flex items-center justify-center " +
-                "max-w-lg py-4 border border-black rounded-sm " +
-                "text-[16px] uppercase tracking-widest " +
-                "hover:bg-black hover:text-white transition-all duration-300"
-              }
-            >
-              Начать продавать
-            </Link>
+      {/* Заголовок */}
+      <div className="sell-title">
+        <div>
+          <div className="sell-title__eyebrow">[ продать · reload 2026 ]</div>
+          <h1>Подарите аксессуарам новую жизнь.</h1>
+        </div>
+        <div className="sell-title__side">
+          <p className="sell-title__intro">
+            Поможем быстро и легко освободить гардероб и найти покупателей для ваших сумок — выкуп, trade-in или реализация на витрине (ex)bags.
+          </p>
+          <div className="sell-title__cta">
+            <Link href="/application/types" className="btn btn--lg">начать продавать →</Link>
           </div>
         </div>
-      </section>
-
-      <div className="max-w-6xl px-6 sm:px-12 mx-auto">
-        {/* Форматы сотрудничества */}
-        <section className="w-full my-9">
-          <h2 className="text-2xl font-medium tracking-tight text-center text-black mb-10">
-            Варианты сотрудничества
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            {formats.map((f) => (
-              <div key={f.title}
-                className="flex flex-col gap-3 px-6 py-7.5 border-[0.75px] border-[#6C6C6C] rounded-[14px] hover:border-neutral-400 transition-colors group"
-              >
-                <span className="font-medium text-neutral-900">{f.title}</span>
-                <span className="text-sm text-neutral-500 leading-relaxed">{f.text}</span>
-                {f.note && (
-                  <span className="text-xs text-neutral-400 leading-relaxed">{f.note}</span>
-                )}
-                {/* {f.link && (
-                  <span className="text-sm underline cursor-pointer text-black group-hover:text-neutral-500 transition-colors mt-auto">
-                    {f.link}
-                  </span>
-                )} */}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Преимущества */}
-        <section className="w-full bg-neutral-50 mb-9">
-          <h2 className="text-2xl font-medium tracking-tight text-center text-black mb-12">
-            Преимущества сотрудничества
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
-            <div className="flex flex-col gap-10">
-              {benefits.slice(0, 3).map((b) => (
-                <div key={b.title} className="flex flex-col gap-3">
-                  <span className="text-sm font-medium text-black">{b.title}</span>
-                  <span className="text-sm text-neutral-500 leading-relaxed whitespace-pre-line">{b.text}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-col gap-10">
-              {benefits.slice(3).map((b) => (
-                <div key={b.title} className="flex flex-col gap-3">
-                  <span className="text-sm font-medium text-black">{b.title}</span>
-                  <span className="text-sm text-neutral-500 leading-relaxed whitespace-pre-line">{b.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Этапы */}
-        <section className="w-full mb-12">
-          <h2 className="text-2xl font-medium tracking-tight text-center text-black mb-11">
-            Этапы сотрудничества
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {steps.map((s, i) => (
-              <div key={s.title} className="flex flex-col gap-3 bg-[#F3F3F3] px-3.75 py-4.5 rounded-[14px]">
-                <span className="text-sm font-medium text-black">{s.title}</span>
-                <span className="text-sm text-neutral-500 leading-relaxed">{s.text}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="w-full mb-11">
-          <h2 className="text-2xl font-medium tracking-tight text-center mb-10">
-            Выберите удобный способ подачи заявки
-          </h2>
-          <div className="flex flex-col sm:flex-row flex-wrap gap-4.5 justify-center">
-            <Link
-              href="/application/types"
-              className={
-                "inline-flex items-center justify-center " +
-                "border-[0.8px] border-black rounded-sm " +
-                "px-3.5 py-4 text-black text-sm text-center tracking-widest " +
-                "hover:bg-black hover:text-white transition-all duration-300"
-              }
-            >
-              Оформить заявку на сайте
-            </Link>
-            <a
-              href="https://t.me/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={
-                "inline-flex items-center justify-center " +
-                "border-[0.8px] border-black rounded-sm " +
-                "px-3.5 py-4 text-black text-sm text-center tracking-widest " +
-                "hover:bg-black hover:text-white transition-all duration-300"
-              }
-            >
-              Оформить заявку в Telegram-bot
-            </a>
-            <a
-              href="https://t.me/+79623331133"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={
-                "inline-flex items-center justify-center " +
-                "border-[0.8px] border-black rounded-sm " +
-                "px-3.5 py-4 text-black text-sm text-center tracking-widest " +
-                "hover:bg-black hover:text-white transition-all duration-300"
-              }
-            >
-              Оформить заявку через менеджера клиентского сервиса
-            </a>
-          </div>
-        </section>
       </div>
+
+      {/* Баннер */}
+      <div className="sell-banner">
+        <img src="/main-bg.png" alt="" />
+      </div>
+
+      {/* Варианты сотрудничества */}
+      <div className="section-head" style={{ marginTop: 88 }}>
+        <h2><span className="active">варианты сотрудничества</span> <span className="sep">/</span> <span className="dim">выберите формат</span></h2>
+        <span className="section-head__meta">[ 01 · формат ]</span>
+      </div>
+      <div className="method-grid">
+        {formats.map((f) => (
+          <div key={f.title} className="method">
+            <span className="method__n">{f.n}</span>
+            <div className="method__title">{f.title}</div>
+            <p className="method__body">{f.text}</p>
+          </div>
+        ))}
+      </div>
+      <p className="method__note">
+        * при продаже аксессуара, ранее купленного в (ex)bags, действует специальная комиссия −5% от стандартной.{" "}
+        <span className="underline cursor-pointer" onClick={() => setComissionModal(true)}>
+          Размер комиссии зависит от стоимости изделия.
+        </span>
+      </p>
+
+      {/* Преимущества */}
+      <div className="section-head" style={{ marginTop: 88 }}>
+        <h2><span className="active">преимущества сотрудничества</span> <span className="sep">/</span> <span className="dim">почему (ex)bags</span></h2>
+        <span className="section-head__meta">[ 02 · преимущества ]</span>
+      </div>
+      <div className="perk-grid">
+        {benefits.map((b) => (
+          <div key={b.title} className="perk">
+            <div className="perk__title">{b.title}</div>
+            <p className="perk__body">{b.text}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Этапы */}
+      <div className="section-head" style={{ marginTop: 88 }}>
+        <h2><span className="active">этапы сотрудничества</span> <span className="sep">/</span> <span className="dim">от заявки до выплаты</span></h2>
+        <span className="section-head__meta">[ 03 · процесс ]</span>
+      </div>
+      <div className="steps-grid">
+        {steps.map((s, i) => (
+          <div key={s.title} className="step">
+            <span className="step__n">0{i + 1}</span>
+            <div className="flex flex-col gap-2">
+              <div className="step__title">{s.title}</div>
+              <p className="step__body">{s.text}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Способы подачи заявки */}
+      <div className="section-head" style={{ marginTop: 88 }}>
+        <h2><span className="active">способы подачи заявки</span> <span className="sep">/</span> <span className="dim">выберите удобный</span></h2>
+        <span className="section-head__meta">[ 04 · заявка ]</span>
+      </div>
+      <div className="channels">
+        <div className="channel">
+          <span className="channel__n">[ веб ]</span>
+          <span className="channel__label">оформить заявку на сайте</span>
+          <Link href="/application/types" className="btn">оформить →</Link>
+        </div>
+        <div className="channel">
+          <span className="channel__n">[ telegram ]</span>
+          <span className="channel__label">оформить заявку в telegram-bot</span>
+          <a href="https://t.me/" target="_blank" rel="noopener noreferrer" className="btn btn--ghost">открыть →</a>
+        </div>
+        <div className="channel">
+          <span className="channel__n">[ менеджер ]</span>
+          <span className="channel__label">оформить через менеджера клиентского сервиса</span>
+          <a href="https://t.me/+79623331133" target="_blank" rel="noopener noreferrer" className="btn btn--ghost">написать →</a>
+        </div>
+      </div>
+      <div className="hours-note">клиентский сервис на связи ежедневно с 10:00 до 22:00</div>
+
+      <div style={{ height: 24 }} />
+
       {/* Размер комиссии */}
       <Modal isOpen={comissionModal} onClose={() => setComissionModal(false)}>
         <h6 className="text-center text-[15px] font-medium mb-4">Размер комиссии зависит от стоимости изделия:</h6>
@@ -264,21 +226,14 @@ export default function HomePage() {
       <Modal isOpen={brandList} onClose={() => setBrandList(false)}>
         <h6 className="text-center text-[15px] font-medium mb-4">Бренд-лист (ex)bags</h6>
         <div className="grid grid-cols-2 gap-x-12 px-7 text-[15px] font-light">
-          {/* Первая колонка */}
           <div className="flex flex-col gap-3">
             {firstColumn.map((brand, index) => (
-              <span key={index}>
-                {brand}
-              </span>
+              <span key={index}>{brand}</span>
             ))}
           </div>
-
-          {/* Вторая колонка */}
           <div className="flex flex-col gap-3">
             {secondColumn.map((brand, index) => (
-              <span key={index}>
-                {brand}
-              </span>
+              <span key={index}>{brand}</span>
             ))}
           </div>
         </div>

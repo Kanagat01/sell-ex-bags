@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useApplicationStore } from "@/store"
 import { useApplicationForm } from "@/hooks"
@@ -14,6 +15,12 @@ import { ApplicationCondition, ApplicationFormat } from "@/types"
 
 const categoryOptions = Object.entries(ITEM_CATEGORIES).map(([value, label]) => ({ value, label }))
 const conditionOptions = Object.values(ApplicationCondition).map((c) => ({ value: c, label: CONDITION_LABELS[c] }))
+
+const introSteps = [
+  "заполните карточку модели",
+  "прикрепите фотографии",
+  "получите оценку в течение 24 часов",
+]
 
 export default function ApplicationPage() {
   const router = useRouter()
@@ -47,213 +54,243 @@ export default function ApplicationPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12.5">
-      <form onSubmit={onSubmit} className="flex flex-col gap-10">
+    <div className="dz-container">
+      <div style={{ paddingTop: 32 }}>
+        <Link href="/application/types" className="flow-back">← назад</Link>
+      </div>
 
-        <h2 className="text-2xl font-medium text-center">
-          Заявка на {FORMAT_LABELS[selectedFormat].toLowerCase()}
-        </h2>
+      <div className="ap-title">
+        <div className="ap-title__eyebrow">[ заявка · шаг 2 из 3 ]</div>
+        <h1>расскажите об аксессуаре</h1>
+      </div>
 
-        {/* Изделия */}
-        {fields.map((field, index) => {
-          const category = categories[index] ?? ("" as ItemCategory | "")
-          const brandList = category === "bags" ? BRANDS_BAGS : category === "watches" ? BRANDS_WATCHES : []
-          const brandOptions = brandList.map((b) => ({ value: b, label: b }))
-          const itemErrors = errors.items?.[index]
+      {/* Тёмная интро-панель */}
+      <div
+        className="sell__copy"
+        style={{ marginTop: 48, minHeight: 0, gap: 28 }}
+      >
+        <div>
+          <span className="sell__eyebrow">[ заявка · {FORMAT_LABELS[selectedFormat].toLowerCase()} ]</span>
+          <h3>оценим ваш аксессуар за 24 часа.</h3>
+          <p style={{ marginTop: 12 }}>выкупаем сразу, берём на комиссию или в trade-in. курьер по москве.</p>
+        </div>
+        <div className="sell__steps">
+          {introSteps.map((s, i) => (
+            <div key={i} className="sell__step">
+              <span className="sell__step__n">[ 0{i + 1} ]</span>
+              <span>{s}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
-          return (
-            <div key={field.id} className="flex flex-col gap-5 border border-neutral-200 p-6">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">Изделие {index + 1}</h3>
-                {fields.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveItem(index)}
-                    className="text-sm text-neutral-400 hover:text-red-500 transition-colors"
-                  >
-                    Удалить
-                  </button>
-                )}
-              </div>
+      {/* Форма (функционал без изменений) */}
+      <form onSubmit={onSubmit} className="dz-form flex flex-col gap-8" style={{ marginBottom: 80 }}>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
-                <Select
-                  label="Категория"
-                  placeholder="Выберите категорию"
-                  options={categoryOptions}
-                  required
-                  value={category}
-                  onChange={(e) => handleCategoryChange(index, e.target.value)}
-                />
+        {/* Единый тёплый блок: изделия + trade-in + контакты */}
+        <div className="border border-(--line) bg-(--bg-warm) p-6 sm:p-8 flex flex-col gap-8">
 
-                <Select
-                  label="Бренд"
-                  placeholder={category ? "Выберите бренд" : "Сначала выберите категорию"}
-                  options={brandOptions}
-                  error={itemErrors?.brand?.message}
-                  required
-                  disabled={!category}
-                  {...register(`items.${index}.brand`)}
-                />
+          {/* Изделия */}
+          {fields.map((field, index) => {
+            const category = categories[index] ?? ("" as ItemCategory | "")
+            const brandList = category === "bags" ? BRANDS_BAGS : category === "watches" ? BRANDS_WATCHES : []
+            const brandOptions = brandList.map((b) => ({ value: b, label: b }))
+            const itemErrors = errors.items?.[index]
 
-                <Input
-                  label="Модель"
-                  placeholder="Например: Birkin 30, Classic Flap"
-                  error={itemErrors?.model?.message}
-                  {...register(`items.${index}.model`)}
-                />
+            return (
+              <div key={field.id} className={"flex flex-col gap-5" + (index > 0 ? " border-t border-(--line) pt-8" : "")}>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium lowercase">Изделие {index + 1}</h3>
+                  {fields.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(index)}
+                      className="text-sm text-neutral-500 hover:text-red-500 transition-colors"
+                    >
+                      Удалить
+                    </button>
+                  )}
+                </div>
 
-                <Input
-                  label="Размер"
-                  placeholder="Например: 30, M"
-                  error={itemErrors?.size?.message}
-                  {...register(`items.${index}.size`)}
-                />
-
-                <Select
-                  label="Состояние"
-                  placeholder="Выберите состояние"
-                  options={conditionOptions}
-                  error={itemErrors?.condition?.message}
-                  required
-                  {...register(`items.${index}.condition`)}
-                />
-
-                <div className="flex flex-col gap-2">
-                  <Input
-                    label="Желаемая цена"
-                    type="number"
-                    placeholder="150000"
-                    hint="В рублях"
-                    error={itemErrors?.desired_price?.message}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
+                  <Select
+                    label="Категория"
+                    placeholder="Выберите категорию"
+                    options={categoryOptions}
                     required
-                    {...register(`items.${index}.desired_price`)}
+                    value={category}
+                    onChange={(e) => handleCategoryChange(index, e.target.value)}
                   />
-                  {selectedFormat === ApplicationFormat.COMMISSION && (() => {
-                    const price = Number(watchedItems?.[index]?.desired_price) || 0
-                    if (price < 5000) return null
-                    const { vat, commissionRate, commission, sellerGets } = calcCommissionBreakdown(price)
-                    return (
-                      <div className="text-sm flex flex-col gap-1 bg-neutral-50 p-3 border border-neutral-200">
-                        <div className="flex justify-between text-neutral-500">
-                          <span>− НДС 5%</span>
-                          <span>− {formatPrice(vat)}</span>
-                        </div>
-                        <div className="flex justify-between text-neutral-500">
-                          <span>− Комиссия ex-bags ({commissionRate * 100}%)</span>
-                          <span>− {formatPrice(commission)}</span>
-                        </div>
-                        <div className="flex justify-between font-medium border-t border-neutral-200 pt-1 mt-1">
-                          <span>Вы получите</span>
-                          <span>{formatPrice(sellerGets)}</span>
-                        </div>
-                      </div>
-                    )
-                  })()}
-                </div>
 
-                <div className="sm:col-span-2">
-                  <Textarea
-                    label="Описание изъянов"
-                    placeholder="Потёртости, царапины, сколы фурнитуры..."
-                    rows={3}
-                    error={itemErrors?.defects_description?.message}
-                    {...register(`items.${index}.defects_description`)}
+                  <Select
+                    label="Бренд"
+                    placeholder={category ? "Выберите бренд" : "Сначала выберите категорию"}
+                    options={brandOptions}
+                    error={itemErrors?.brand?.message}
+                    required
+                    disabled={!category}
+                    {...register(`items.${index}.brand`)}
                   />
-                </div>
 
-                <div className="sm:col-span-2">
-                  <FileUpload
-                    onChange={(files) => setValue(`items.${index}.photos`, files, { shouldValidate: true })}
-                    error={itemErrors?.photos?.message as string | undefined}
+                  <Input
+                    label="Модель"
+                    placeholder="Например: Birkin 30, Classic Flap"
+                    error={itemErrors?.model?.message}
+                    {...register(`items.${index}.model`)}
                   />
+
+                  <Input
+                    label="Размер"
+                    placeholder="Например: 30, M"
+                    error={itemErrors?.size?.message}
+                    {...register(`items.${index}.size`)}
+                  />
+
+                  <Select
+                    label="Состояние"
+                    placeholder="Выберите состояние"
+                    options={conditionOptions}
+                    error={itemErrors?.condition?.message}
+                    required
+                    {...register(`items.${index}.condition`)}
+                  />
+
+                  <div className="flex flex-col gap-2">
+                    <Input
+                      label="Желаемая цена"
+                      type="number"
+                      placeholder="150000"
+                      hint="В рублях"
+                      error={itemErrors?.desired_price?.message}
+                      required
+                      {...register(`items.${index}.desired_price`)}
+                    />
+                    {selectedFormat === ApplicationFormat.COMMISSION && (() => {
+                      const price = Number(watchedItems?.[index]?.desired_price) || 0
+                      if (price < 5000) return null
+                      const { vat, commissionRate, commission, sellerGets } = calcCommissionBreakdown(price)
+                      return (
+                        <div className="text-sm flex flex-col gap-1 bg-white p-3 border border-(--line)">
+                          <div className="flex justify-between text-neutral-500">
+                            <span>− НДС 5%</span>
+                            <span>− {formatPrice(vat)}</span>
+                          </div>
+                          <div className="flex justify-between text-neutral-500">
+                            <span>− Комиссия ex-bags ({commissionRate * 100}%)</span>
+                            <span>− {formatPrice(commission)}</span>
+                          </div>
+                          <div className="flex justify-between font-medium border-t border-neutral-200 pt-1 mt-1">
+                            <span>Вы получите</span>
+                            <span>{formatPrice(sellerGets)}</span>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <Textarea
+                      label="Описание изъянов"
+                      placeholder="Потёртости, царапины, сколы фурнитуры..."
+                      rows={3}
+                      error={itemErrors?.defects_description?.message}
+                      {...register(`items.${index}.defects_description`)}
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <FileUpload
+                      onChange={(files) => setValue(`items.${index}.photos`, files, { shouldValidate: true })}
+                      error={itemErrors?.photos?.message as string | undefined}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
 
-        <button
-          type="button"
-          onClick={handleAddItem}
-          className="self-start text-sm underline text-neutral-500 hover:text-black transition-colors"
-        >
-          + Добавить изделие
-        </button>
+          <button
+            type="button"
+            onClick={handleAddItem}
+            className="self-start text-sm underline text-neutral-500 hover:text-black transition-colors"
+          >
+            + Добавить изделие
+          </button>
 
-        {/* Trade-in предпочтение */}
-        {selectedFormat === ApplicationFormat.TRADE_IN && (
-          <div className="flex flex-col gap-5 border border-neutral-200 p-6">
-            <h2 className="text-2xl font-medium text-center">Что вы хотите получить взамен?</h2>
-            <div className="flex gap-6">
-              <label className="flex items-center gap-2 cursor-pointer text-sm">
-                <input
-                  type="radio"
-                  name="tradeInType"
-                  value="url"
-                  checked={tradeInType === "url"}
-                  onChange={() => {
-                    setTradeInType("url")
-                    setValue("trade_in_certificate_amount", undefined)
-                  }}
+          {/* Trade-in предпочтение */}
+          {selectedFormat === ApplicationFormat.TRADE_IN && (
+            <div className="flex flex-col gap-5 border-t border-(--line) pt-8">
+              <h2 className="text-xl font-medium lowercase">Что вы хотите получить взамен?</h2>
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input
+                    type="radio"
+                    name="tradeInType"
+                    value="url"
+                    checked={tradeInType === "url"}
+                    onChange={() => {
+                      setTradeInType("url")
+                      setValue("trade_in_certificate_amount", undefined)
+                    }}
+                  />
+                  Ссылка на изделие
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input
+                    type="radio"
+                    name="tradeInType"
+                    value="certificate"
+                    checked={tradeInType === "certificate"}
+                    onChange={() => {
+                      setTradeInType("certificate")
+                      setValue("trade_in_item_url", "")
+                    }}
+                  />
+                  Получить сертификат
+                </label>
+              </div>
+              {tradeInType === "url" ? (
+                <Input
+                  label="Ссылка на изделие"
+                  type="url"
+                  placeholder="https://..."
+                  error={errors.trade_in_item_url?.message}
+                  {...register("trade_in_item_url")}
                 />
-                Ссылка на изделие
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer text-sm">
-                <input
-                  type="radio"
-                  name="tradeInType"
-                  value="certificate"
-                  checked={tradeInType === "certificate"}
-                  onChange={() => {
-                    setTradeInType("certificate")
-                    setValue("trade_in_item_url", "")
-                  }}
+              ) : (
+                <Input
+                  label="Сумма сертификата"
+                  type="number"
+                  placeholder="50000"
+                  hint="В рублях"
+                  error={(errors.trade_in_certificate_amount as { message?: string } | undefined)?.message}
+                  {...register("trade_in_certificate_amount")}
                 />
-                Получить сертификат
-              </label>
+              )}
             </div>
-            {tradeInType === "url" ? (
-              <Input
-                label="Ссылка на изделие"
-                type="url"
-                placeholder="https://..."
-                error={errors.trade_in_item_url?.message}
-                {...register("trade_in_item_url")}
-              />
-            ) : (
-              <Input
-                label="Сумма сертификата"
-                type="number"
-                placeholder="50000"
-                hint="В рублях"
-                error={(errors.trade_in_certificate_amount as { message?: string } | undefined)?.message}
-                {...register("trade_in_certificate_amount")}
-              />
-            )}
-          </div>
-        )}
+          )}
 
-        {/* Контакты */}
-        <div className="flex flex-col gap-4">
-          <h2 className="text-2xl font-medium text-center">Контакты</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-2">
-            <Input
-              label="Телефон"
-              type="tel"
-              placeholder="+7 (999) 123-45-67"
-              error={errors.phone?.message}
-              required
-              {...register("phone")}
-            />
-            <Input
-              label="Email"
-              type="email"
-              placeholder="your@email.com"
-              hint="Необязательно — для уведомлений"
-              error={errors.email?.message}
-              {...register("email")}
-            />
+          {/* Контакты */}
+          <div className="flex flex-col gap-4 border-t border-(--line) pt-8">
+            <h2 className="text-xl font-medium lowercase">Контакты</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-2">
+              <Input
+                label="Телефон"
+                type="tel"
+                placeholder="+7 (999) 123-45-67"
+                error={errors.phone?.message}
+                required
+                {...register("phone")}
+              />
+              <Input
+                label="Email"
+                type="email"
+                placeholder="your@email.com"
+                hint="Необязательно — для уведомлений"
+                error={errors.email?.message}
+                {...register("email")}
+              />
+            </div>
           </div>
         </div>
 

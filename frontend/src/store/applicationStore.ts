@@ -1,5 +1,8 @@
 import { create } from "zustand"
+import { persist, createJSONStorage } from "zustand/middleware"
 import { Application, ApplicationFormat } from "@/types"
+
+const noopStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} }
 
 interface ApplicationState {
   // Выбранный формат на главной странице
@@ -40,24 +43,41 @@ const defaultFilters = {
   date_to: "",
 }
 
-export const useApplicationStore = create<ApplicationState>((set) => ({
-  selectedFormat: null,
-  setSelectedFormat: (format) => set({ selectedFormat: format }),
+export const useApplicationStore = create<ApplicationState>()(
+  persist(
+    (set) => ({
+      selectedFormat: null,
+      setSelectedFormat: (format) => set({ selectedFormat: format }),
 
-  prefillPhone: "",
-  prefillEmail: "",
-  setPrefill: (phone, email) => set({ prefillPhone: phone, prefillEmail: email }),
+      prefillPhone: "",
+      prefillEmail: "",
+      setPrefill: (phone, email) => set({ prefillPhone: phone, prefillEmail: email }),
 
-  applications: [],
-  setApplications: (applications) => set({ applications }),
+      applications: [],
+      setApplications: (applications) => set({ applications }),
 
-  currentApplication: null,
-  setCurrentApplication: (application) => set({ currentApplication: application }),
+      currentApplication: null,
+      setCurrentApplication: (application) => set({ currentApplication: application }),
 
-  filters: defaultFilters,
-  setFilter: (key, value) =>
-    set((state) => ({
-      filters: { ...state.filters, [key]: value },
-    })),
-  resetFilters: () => set({ filters: defaultFilters }),
-}))
+      filters: defaultFilters,
+      setFilter: (key, value) =>
+        set((state) => ({
+          filters: { ...state.filters, [key]: value },
+        })),
+      resetFilters: () => set({ filters: defaultFilters }),
+    }),
+    {
+      name: "exbags-application",
+      // sessionStorage: переживает refresh страницы, очищается при закрытии вкладки
+      storage: createJSONStorage(() =>
+        typeof window !== "undefined" ? window.sessionStorage : (noopStorage as unknown as Storage)
+      ),
+      // Персистим только то, что нужно для флоу заявки (не админ-данные)
+      partialize: (s) => ({
+        selectedFormat: s.selectedFormat,
+        prefillPhone: s.prefillPhone,
+        prefillEmail: s.prefillEmail,
+      }),
+    }
+  )
+)

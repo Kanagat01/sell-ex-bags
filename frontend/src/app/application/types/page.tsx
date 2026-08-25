@@ -1,5 +1,7 @@
 "use client"
 
+import { useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useApplicationStore } from "@/store"
 import { ApplicationFormat } from "@/types"
@@ -11,49 +13,54 @@ const formats = [
   ApplicationFormat.COMMISSION,
 ]
 
-export default function HomePage() {
+export default function ApplicationTypesPage() {
   const router = useRouter()
   const { setSelectedFormat } = useApplicationStore()
+  const [selected, setSelected] = useState<ApplicationFormat>(formats[0])
 
-  const handleSelect = (format: ApplicationFormat) => {
-    setSelectedFormat(format)
+  const handleContinue = () => {
+    setSelectedFormat(selected)
     router.push("/application")
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-6xl mx-auto px-6 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-12 items-stretch">
-
-          {/* Фото */}
-          <div className="w-full">
-            <img
-              src="/application-types-main.png"
-              alt="Luxury bag"
-              className="w-full max-h-138 object-contain"
-            />
-          </div>
-
-          {/* Карточки */}
-          <div className="flex flex-col h-full justify-between py-8 gap-y-5">
-            {formats.map((format) => (
-              <button
-                key={format}
-                onClick={() => handleSelect(format)}
-                className="flex flex-col text-left gap-2.5 pt-6 pr-4 pl-7.5 pb-7.5 border border-neutral-300 hover:border-[#6C6C6C] rounded-[14px] transition-colors"
-              >
-                <span className="text-sm font-semibold text-neutral-900">
-                  {FORMAT_LABELS[format]}
-                </span>
-                <span className="text-sm text-neutral-500 leading-relaxed">
-                  {FORMAT_DESCRIPTIONS[format]}
-                </span>
-              </button>
-            ))}
-          </div>
-
-        </div>
+    <div className="dz-container dz-container--wide">
+      <div style={{ paddingTop: 32 }}>
+        <Link href="/" className="flow-back">← назад</Link>
       </div>
+
+      <div className="at-title">
+        <div className="at-title__eyebrow">[ заявка · шаг 1 из 3 ]</div>
+        <h1>выберите способ продажи</h1>
+      </div>
+
+      <div className="at-banner">
+        <img src="/application-types-main.png" alt="" />
+      </div>
+
+      <div className="type-grid">
+        {formats.map((format, i) => {
+          const isActive = selected === format
+          return (
+            <button
+              key={format}
+              className={"type-card" + (isActive ? " is-active" : "")}
+              onClick={() => setSelected(format)}
+            >
+              <span className="type-card__n">[ 0{i + 1} · {FORMAT_LABELS[format].toLowerCase()} ]</span>
+              <span className="type-card__title">{FORMAT_LABELS[format]}</span>
+              <p className="type-card__body">{FORMAT_DESCRIPTIONS[format]}</p>
+              <span className="type-card__pick">{isActive ? "выбрано ✓" : "выбрать →"}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="at-actions">
+        <button className="btn btn--lg" onClick={handleContinue}>продолжить →</button>
+      </div>
+
+      <div style={{ height: 80 }} />
     </div>
   )
 }
