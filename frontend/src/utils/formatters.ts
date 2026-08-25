@@ -35,13 +35,12 @@ export interface CommissionBreakdown {
 }
 
 export function getCommissionRate(salePrice: number): number {
-  if (salePrice >= 1_000_000) return 0.15
-  if (salePrice >= 501_000) return 0.20
-  if (salePrice >= 251_000) return 0.25
-  if (salePrice >= 101_000) return 0.30
-  if (salePrice >= 51_000) return 0.35
-  if (salePrice >= 31_000) return 0.40
-  return 0.45
+  if (salePrice >= 1_800_001) return 0.10
+  if (salePrice >= 1_300_001) return 0.15
+  if (salePrice >= 900_001) return 0.20
+  if (salePrice >= 400_001) return 0.25
+  if (salePrice >= 100_001) return 0.30
+  return 0.35 // от 5.000 до 100.000
 }
 
 export function calcCommissionBreakdown(salePrice: number): CommissionBreakdown {

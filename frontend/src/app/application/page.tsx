@@ -131,7 +131,7 @@ export default function ApplicationPage() {
                   />
                   {selectedFormat === ApplicationFormat.COMMISSION && (() => {
                     const price = Number(watchedItems?.[index]?.desired_price) || 0
-                    if (price < 15000) return null
+                    if (price < 5000) return null
                     const { vat, commissionRate, commission, sellerGets } = calcCommissionBreakdown(price)
                     return (
                       <div className="text-sm flex flex-col gap-1 bg-neutral-50 p-3 border border-neutral-200">

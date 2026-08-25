@@ -461,7 +461,7 @@ export default function ApplicationDetailPage() {
                     setItemPrices((prev) => ({ ...prev, [item.id]: e.target.value }))
                   }
                 />
-                {approveFormat === ApplicationFormat.COMMISSION && price >= 15000 && (() => {
+                {approveFormat === ApplicationFormat.COMMISSION && price >= 5000 && (() => {
                   const { vat, commissionRate, commission, sellerGets } = calcCommissionBreakdown(price)
                   return (
                     <div className="text-sm flex flex-col gap-1 bg-neutral-50 p-3 border border-neutral-200">

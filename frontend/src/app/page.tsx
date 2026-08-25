@@ -237,12 +237,12 @@ export default function HomePage() {
           <table className="min-w-full border-collapse">
             <tbody>
               {[
-                { range: 'от 15.000 до 30.000', commission: 'комиссия 40%' },
-                { range: 'от 31.000 до 50.000', commission: 'комиссия 35%' },
-                { range: 'от 51.000 до 100.000', commission: 'комиссия 30%' },
-                { range: 'от 101.000 до 250.000', commission: 'комиссия 25%' },
-                { range: 'от 251.000 до 500.000', commission: 'комиссия 20%' },
-                { range: 'от 501.000 рублей', commission: 'комиссия составит 15%' },
+                { range: 'от 5.000 до 100.000', commission: 'комиссия 35%' },
+                { range: 'от 100.001 до 400.000', commission: 'комиссия 30%' },
+                { range: 'от 400.001 до 900.000', commission: 'комиссия 25%' },
+                { range: 'от 900.001 до 1.300.000', commission: 'комиссия 20%' },
+                { range: 'от 1.300.001 до 1.800.000', commission: 'комиссия 15%' },
+                { range: 'от 1.800.001 рублей', commission: 'комиссия составит 10%' },
               ].map((item, i) => (
                 <tr
                   key={i}
