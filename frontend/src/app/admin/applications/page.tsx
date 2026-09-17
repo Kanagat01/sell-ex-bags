@@ -136,12 +136,18 @@ export default function AdminApplicationsPage() {
               href={`/admin/applications/${app.id}`}
               className="text-black font-medium hover:underline"
             >
-              {app.items[0].brand}
-              {app.items[0].model ? ` ${app.items[0].model}` : ""}
-              {app.items.length > 1 && (
-                <span className="ml-1 font-normal text-neutral-400">
-                  +{app.items.length - 1}
-                </span>
+              {app.items.length === 0 ? (
+                "Без изделий"
+              ) : (
+                <>
+                  {app.items[0].brand}
+                  {app.items[0].model ? ` ${app.items[0].model}` : ""}
+                  {app.items.length > 1 && (
+                    <span className="ml-1 font-normal text-neutral-400">
+                      +{app.items.length - 1}
+                    </span>
+                  )}
+                </>
               )}
             </Link>
           </td>

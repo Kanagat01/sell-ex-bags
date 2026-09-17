@@ -192,12 +192,18 @@ export default function ApplicationDetailPage() {
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-medium">
-            {application.items[0].brand}
-            {application.items[0].model ? ` ${application.items[0].model}` : ""}
-            {application.items.length > 1 && (
-              <span className="ml-2 text-base font-normal text-neutral-500">
-                +{application.items.length - 1} изд.
-              </span>
+            {application.items.length === 0 ? (
+              "Без изделий"
+            ) : (
+              <>
+                {application.items[0].brand}
+                {application.items[0].model ? ` ${application.items[0].model}` : ""}
+                {application.items.length > 1 && (
+                  <span className="ml-2 text-base font-normal text-neutral-500">
+                    +{application.items.length - 1} изд.
+                  </span>
+                )}
+              </>
             )}
           </h1>
           <p className="text-sm text-neutral-500">
