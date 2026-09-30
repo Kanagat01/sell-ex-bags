@@ -1,7 +1,7 @@
 import random
 import string
 from io import BytesIO
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from num2words import num2words
 from datetime import timedelta
 
@@ -55,6 +55,30 @@ def amount_to_words(value: Decimal) -> str:
         return f"{words} целых {kopeks_str} сотых"
 
 
+def get_commission_rate(sale_price: Decimal) -> Decimal:
+    # Должно совпадать с getCommissionRate во frontend/src/utils/formatters.ts
+    if sale_price >= 1_800_001:
+        return Decimal("0.10")
+    if sale_price >= 1_300_001:
+        return Decimal("0.15")
+    if sale_price >= 900_001:
+        return Decimal("0.20")
+    if sale_price >= 400_001:
+        return Decimal("0.25")
+    if sale_price >= 100_001:
+        return Decimal("0.30")
+    return Decimal("0.35")
+
+
+def commission_seller_gets(sale_price: Decimal) -> Decimal:
+    """Сколько получит комитент после продажи (минимальная стоимость продажи).
+    Повторяет calcCommissionBreakdown с фронта: −НДС 5%, затем −комиссия."""
+    vat = (sale_price * Decimal("0.05")).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    after_vat = sale_price - vat
+    commission = (after_vat * get_commission_rate(sale_price)).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    return after_vat - commission
+
+
 class DocumentService:
 
     @staticmethod
@@ -79,6 +103,11 @@ class DocumentService:
             (item.offered_price for item in items),
             Decimal("0"),
         )
+        # Для договора комиссии: offered_price — максимальная стоимость продажи,
+        # min_price — сколько получит комитент (минимальная стоимость продажи).
+        for item in items:
+            item.min_price = commission_seller_gets(item.offered_price)
+        total_min = sum((item.min_price for item in items), Decimal("0"))
         contract_doc = Document.objects.filter(
             application=application,
             document_type=DocumentType.CONTRACT,
@@ -96,6 +125,7 @@ class DocumentService:
             "items": items,
             "contract_amount": total_offered.normalize(),
             "contract_amount_words": amount_to_words(total_offered),
+            "contract_min_amount": total_min,
             "document_date": document.created_at,
             "document_number": document.document_number,
             "contract_number": contract_doc.document_number if contract_doc else "",
