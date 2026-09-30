@@ -27,6 +27,24 @@ class EmailService:
         msg.send()
 
     @staticmethod
+    def send_offer_options_notification(
+        email: str, short_label: str, options_text: str, offer_url: str
+    ) -> None:
+        if not email:
+            return
+        msg = EmailMessage(
+            subject=f"Предложение по вашей заявке — {short_label}",
+            body=(
+                f"Добрый день!\n\n"
+                f"Мы подготовили для вас несколько вариантов сотрудничества:\n{options_text}\n\n"
+                f"Перейдите по ссылке, чтобы ознакомиться с условиями и выбрать подходящий вариант:\n{offer_url}\n\n"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[email],
+        )
+        msg.send()
+
+    @staticmethod
     def send_rejection_notification(
         email: str, short_label: str, items_text: str, reason: str
     ) -> None:

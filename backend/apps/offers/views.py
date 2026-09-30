@@ -32,7 +32,7 @@ class OfferAcceptView(APIView):
     def post(self, request: Request, token: str) -> Response:
         try:
             offer = OfferService.get_valid_offer(token)
-            OfferService.accept(offer)
+            OfferService.accept(offer, str(request.data.get("format") or "") or None)
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

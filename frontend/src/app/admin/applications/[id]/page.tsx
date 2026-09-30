@@ -28,7 +28,19 @@ import {
 } from "@/utils"
 
 const CONDITION_OPTIONS = Object.entries(CONDITION_LABELS).map(([value, label]) => ({ value, label }))
-const FORMAT_OPTIONS = Object.entries(FORMAT_LABELS).map(([value, label]) => ({ value, label }))
+const ALL_FORMATS = Object.values(ApplicationFormat)
+
+const PRICE_LABELS: Record<ApplicationFormat, string> = {
+  [ApplicationFormat.PURCHASE]: "Сумма выкупа (₽)",
+  [ApplicationFormat.TRADE_IN]: "Сумма депозита (₽)",
+  [ApplicationFormat.COMMISSION]: "Сумма продажи (₽)",
+}
+
+const PRICE_HINTS: Record<ApplicationFormat, string> = {
+  [ApplicationFormat.PURCHASE]: "Оставьте поле пустым, чтобы исключить изделие из предложения",
+  [ApplicationFormat.TRADE_IN]: "Укажите сумму депозита в магазине",
+  [ApplicationFormat.COMMISSION]: "Укажите сумму продажи — покупатель увидит разбивку с вычетом НДС и комиссии",
+}
 
 const rejectSchema = z.object({
   rejection_reason: z.string().min(1, "Укажите причину"),
@@ -48,8 +60,9 @@ export default function ApplicationDetailPage() {
   const [isApproveOpen, setIsApproveOpen] = useState(false)
   const [isRejectOpen, setIsRejectOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [itemPrices, setItemPrices] = useState<Record<string, string>>({})
-  const [approveFormat, setApproveFormat] = useState<ApplicationFormat | "">("")
+  // Выбранные форматы и цены по каждому формату: prices[format][itemId]
+  const [approveFormats, setApproveFormats] = useState<ApplicationFormat[]>([])
+  const [itemPrices, setItemPrices] = useState<Partial<Record<ApplicationFormat, Record<string, string>>>>({})
   const [isSendingAct, setIsSendingAct] = useState(false)
   const [editingItem, setEditingItem] = useState<ApplicationItem | null>(null)
   const [editFields, setEditFields] = useState<Record<string, string>>({})
@@ -78,22 +91,24 @@ export default function ApplicationDetailPage() {
   const handleApprove = async () => {
     setActionError(null)
     if (!application) return
-    if (!approveFormat) {
-      setActionError("Выберите формат сотрудничества")
+    if (approveFormats.length === 0) {
+      setActionError("Выберите хотя бы один формат сотрудничества")
       return
     }
-    const items = application.items
-      .filter((item) => Number(itemPrices[item.id]) > 0)
-      .map((item) => ({
-        id: item.id,
-        offered_price: Number(itemPrices[item.id]),
-      }))
-    if (items.length === 0) {
-      setActionError("Укажите сумму хотя бы для одного изделия")
-      return
+    const options = []
+    for (const format of ALL_FORMATS.filter((f) => approveFormats.includes(f))) {
+      const prices = itemPrices[format] ?? {}
+      const items = application.items
+        .filter((item) => Number(prices[item.id]) > 0)
+        .map((item) => ({ id: item.id, offered_price: Number(prices[item.id]) }))
+      if (items.length === 0) {
+        setActionError(`${FORMAT_LABELS[format]}: укажите сумму хотя бы для одного изделия`)
+        return
+      }
+      options.push({ format, items })
     }
     try {
-      await approveApplication(id, { format: approveFormat, items })
+      await approveApplication(id, { options })
       setIsApproveOpen(false)
       await fetchApplication()
     } catch (e: unknown) {
@@ -304,13 +319,37 @@ export default function ApplicationDetailPage() {
             </div>
           )}
 
+          {/* Отправленные варианты — пока клиент не выбрал один */}
+          {application.offer_options.length > 1 && (
+            <div className="flex flex-col gap-3 border border-neutral-200 p-5">
+              <h2 className="font-medium">Отправленные варианты</h2>
+              <p className="text-sm text-neutral-500 -mt-1">Клиент выберет один формат</p>
+              {application.offer_options.map((option) => (
+                <div key={option.format} className="flex flex-col gap-1 text-sm border-t border-neutral-100 pt-2">
+                  <span className="font-medium">{FORMAT_LABELS[option.format]}</span>
+                  {option.items.map((optionItem) => {
+                    const item = application.items.find((i) => i.id === optionItem.id)
+                    return (
+                      <div key={optionItem.id} className="flex justify-between gap-3">
+                        <span className="text-neutral-500">
+                          {item ? `${item.brand}${item.model ? ` ${item.model}` : ""}` : "Изделие"}
+                        </span>
+                        <span>{formatPrice(optionItem.price)}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Действия */}
           {actionError && <ErrorMessage message={actionError} />}
 
           <div className="flex flex-col gap-3">
             {canApproveOrReject && (
               <>
-                <Button onClick={() => { setApproveFormat(application.format); setIsApproveOpen(true) }} fullWidth>
+                <Button onClick={() => { setApproveFormats([application.format]); setIsApproveOpen(true) }} fullWidth>
                   Одобрить заявку
                 </Button>
                 <Button
@@ -434,61 +473,77 @@ export default function ApplicationDetailPage() {
         title="Одобрить заявку"
       >
         <div className="flex flex-col gap-4">
-          <Select
-            label="Формат сотрудничества"
-            options={FORMAT_OPTIONS}
-            value={approveFormat}
-            onChange={(e) => setApproveFormat(e.target.value as ApplicationFormat)}
-            required
-          />
-          <p className="text-sm text-neutral-500">
-            {approveFormat === ApplicationFormat.COMMISSION
-              ? "Укажите сумму продажи — покупатель увидит разбивку с вычетом НДС и комиссии"
-              : approveFormat === ApplicationFormat.TRADE_IN
-              ? "Укажите сумму депозита в магазине"
-              : "Оставьте поле пустым чтобы исключить изделие из предложения"}
-          </p>
-          {application.items.map((item) => {
-            const price = Number(itemPrices[item.id]) || 0
-            const priceLabel =
-              approveFormat === ApplicationFormat.COMMISSION
-                ? "Сумма продажи (₽)"
-                : approveFormat === ApplicationFormat.TRADE_IN
-                ? "Сумма депозита (₽)"
-                : "Сумма выкупа (₽)"
-            return (
-              <div key={item.id} className="flex flex-col gap-2">
-                <Input
-                  label={`${item.brand}${item.model ? ` ${item.model}` : ""} — ${priceLabel}`}
-                  type="number"
-                  placeholder="Не включать"
-                  value={itemPrices[item.id] ?? ""}
-                  onChange={(e) =>
-                    setItemPrices((prev) => ({ ...prev, [item.id]: e.target.value }))
-                  }
-                />
-                {approveFormat === ApplicationFormat.COMMISSION && price >= 5000 && (() => {
-                  const { vat, commissionRate, commission, sellerGets } = calcCommissionBreakdown(price)
-                  return (
-                    <div className="text-sm flex flex-col gap-1 bg-neutral-50 p-3 border border-neutral-200">
-                      <div className="flex justify-between text-neutral-500">
-                        <span>− НДС 5%</span>
-                        <span>− {formatPrice(vat)}</span>
-                      </div>
-                      <div className="flex justify-between text-neutral-500">
-                        <span>− Комиссия ex-bags ({commissionRate * 100}%)</span>
-                        <span>− {formatPrice(commission)}</span>
-                      </div>
-                      <div className="flex justify-between font-medium border-t border-neutral-200 pt-1 mt-1">
-                        <span>Продавец получит</span>
-                        <span>{formatPrice(sellerGets)}</span>
-                      </div>
-                    </div>
-                  )
-                })()}
-              </div>
-            )
-          })}
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-neutral-700">
+              Форматы сотрудничества<span className="text-red-500 ml-1">*</span>
+            </span>
+            <p className="text-sm text-neutral-500">
+              Можно предложить несколько — клиент выберет один
+            </p>
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              {ALL_FORMATS.map((format) => (
+                <label key={format} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-black"
+                    checked={approveFormats.includes(format)}
+                    onChange={(e) =>
+                      setApproveFormats((prev) =>
+                        e.target.checked ? [...prev, format] : prev.filter((f) => f !== format)
+                      )
+                    }
+                  />
+                  {FORMAT_LABELS[format]}
+                </label>
+              ))}
+            </div>
+          </div>
+          {ALL_FORMATS.filter((format) => approveFormats.includes(format)).map((format) => (
+            <div key={format} className="flex flex-col gap-3 border-t border-neutral-200 pt-4">
+              <h3 className="font-medium">{FORMAT_LABELS[format]}</h3>
+              <p className="text-sm text-neutral-500 -mt-2">{PRICE_HINTS[format]}</p>
+              {application.items.map((item) => {
+                const value = itemPrices[format]?.[item.id] ?? ""
+                const price = Number(value) || 0
+                return (
+                  <div key={item.id} className="flex flex-col gap-2">
+                    <Input
+                      label={`${item.brand}${item.model ? ` ${item.model}` : ""} — ${PRICE_LABELS[format]}`}
+                      type="number"
+                      placeholder="Не включать"
+                      value={value}
+                      onChange={(e) =>
+                        setItemPrices((prev) => ({
+                          ...prev,
+                          [format]: { ...prev[format], [item.id]: e.target.value },
+                        }))
+                      }
+                    />
+                    {format === ApplicationFormat.COMMISSION && price >= 5000 && (() => {
+                      const { vat, commissionRate, commission, sellerGets } = calcCommissionBreakdown(price)
+                      return (
+                        <div className="text-sm flex flex-col gap-1 bg-neutral-50 p-3 border border-neutral-200">
+                          <div className="flex justify-between text-neutral-500">
+                            <span>− НДС 5%</span>
+                            <span>− {formatPrice(vat)}</span>
+                          </div>
+                          <div className="flex justify-between text-neutral-500">
+                            <span>− Комиссия ex-bags ({commissionRate * 100}%)</span>
+                            <span>− {formatPrice(commission)}</span>
+                          </div>
+                          <div className="flex justify-between font-medium border-t border-neutral-200 pt-1 mt-1">
+                            <span>Продавец получит</span>
+                            <span>{formatPrice(sellerGets)}</span>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+          {actionError && <ErrorMessage message={actionError} />}
           <div className="flex gap-3">
             <Button type="button" variant="secondary" onClick={() => setIsApproveOpen(false)} fullWidth>
               Отмена

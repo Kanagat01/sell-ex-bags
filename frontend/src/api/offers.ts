@@ -1,5 +1,5 @@
 import api from "./client"
-import { Offer, PersonalDataPayload } from "@/types"
+import { ApplicationFormat, Offer, PersonalDataPayload } from "@/types"
 
 export const getPersonalDataPrefill = async (
   token: string
@@ -13,8 +13,11 @@ export const getOffer = async (token: string): Promise<Offer> => {
   return data
 }
 
-export const acceptOffer = async (token: string): Promise<{ detail: string }> => {
-  const { data } = await api.post<{ detail: string }>(`/offer/${token}/accept/`)
+export const acceptOffer = async (
+  token: string,
+  format?: ApplicationFormat
+): Promise<{ detail: string }> => {
+  const { data } = await api.post<{ detail: string }>(`/offer/${token}/accept/`, { format })
   return data
 }
 

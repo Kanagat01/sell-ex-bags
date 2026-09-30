@@ -31,6 +31,40 @@ def _short_label(application, rejected: bool = False) -> str:
     return label
 
 
+def _fmt_rub(amount) -> str:
+    return f"{amount:,.0f}".replace(",", " ") + " ₽"
+
+
+def _offer_label(options) -> str:
+    """Короткая подпись по изделиям, входящим хотя бы в один вариант"""
+    items = {item.id: item for _, option_items in options for item, _ in option_items}
+    items = sorted(items.values(), key=lambda i: (i.order, i.id))
+    if not items:
+        return ""
+    label = f"{items[0].brand} {items[0].model}".strip()
+    if len(items) > 1:
+        label += f" +{len(items) - 1} изд."
+    return label
+
+
+def _options_text(options) -> str:
+    """Список вариантов для письма: формат — сумма"""
+    from apps.applications.models import ApplicationFormat
+    from apps.contracts.services import commission_seller_gets
+
+    lines = []
+    for fmt, option_items in options:
+        total = sum(price for _, price in option_items)
+        if fmt == ApplicationFormat.COMMISSION:
+            seller_gets = sum(commission_seller_gets(price) for _, price in option_items)
+            lines.append(f"• Реализация — сумма продажи {_fmt_rub(total)}, вы получите {_fmt_rub(seller_gets)}")
+        elif fmt == ApplicationFormat.TRADE_IN:
+            lines.append(f"• Trade-In — депозит {_fmt_rub(total)}")
+        else:
+            lines.append(f"• Выкуп — {_fmt_rub(total)}")
+    return "\n".join(lines)
+
+
 def _items_text(application, with_price: bool = False, rejected: bool = False) -> str:
     lines = []
     for item in application.items.filter(offered_price__isnull=rejected):
@@ -74,6 +108,15 @@ def send_offer_email(self, application_id: str) -> None:
 
     application = Application.objects.prefetch_related("items").select_related("offer").get(id=application_id)
     offer_url = f"{settings.FRONTEND_URL}/offer/{application.offer.token}"
+    options = application.offer.get_options()
+    if len(options) > 1:
+        EmailService.send_offer_options_notification(
+            email=application.email,
+            short_label=_offer_label(options),
+            options_text=_options_text(options),
+            offer_url=offer_url,
+        )
+        return
     total_amount = sum(i.offered_price for i in application.items.all() if i.offered_price)
 
     EmailService.send_offer_notification(
@@ -92,6 +135,14 @@ def send_offer_sms(self, application_id: str) -> None:
 
     application = Application.objects.prefetch_related("items").select_related("offer").get(id=application_id)
     offer_url = f"{settings.FRONTEND_URL}/offer/{application.offer.token}"
+    options = application.offer.get_options()
+    if len(options) > 1:
+        SmsService.send_offer_options_notification(
+            phone=application.phone,
+            short_label=_offer_label(options),
+            offer_url=offer_url,
+        )
+        return
     total_amount = sum(i.offered_price for i in application.items.all() if i.offered_price)
 
     SmsService.send_offer_notification(

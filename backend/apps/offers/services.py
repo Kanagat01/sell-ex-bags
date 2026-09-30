@@ -1,6 +1,6 @@
 from django.db import transaction
 from .models import Offer, PersonalData
-from apps.applications.models import Application, ApplicationStatus
+from apps.applications.models import Application, ApplicationItem, ApplicationStatus
 from apps.contracts.services import DocumentService
 
 
@@ -25,10 +25,29 @@ class OfferService:
 
     @staticmethod
     @transaction.atomic
-    def accept(offer: Offer) -> None:
-        """Продавец принимает предложение"""
-        offer.application.status = ApplicationStatus.ACCEPTED
-        offer.application.save(update_fields=["status", "updated_at"])
+    def accept(offer: Offer, chosen_format: str | None = None) -> None:
+        """Продавец принимает предложение. Если вариантов несколько — выбирает
+        один формат; его формат и цены записываются в заявку."""
+        options = dict(offer.get_options())
+        if not options:
+            raise ValueError("В предложении нет изделий")
+        if chosen_format is None:
+            if len(options) > 1:
+                raise ValueError("Выберите формат сотрудничества")
+            chosen_format = next(iter(options))
+        if chosen_format not in options:
+            raise ValueError("Этот формат не входит в предложение")
+
+        application = offer.application
+        price_map = {item.id: price for item, price in options[chosen_format]}
+        items = list(application.items.all())
+        for item in items:
+            item.offered_price = price_map.get(item.id)
+        ApplicationItem.objects.bulk_update(items, ["offered_price"])
+
+        application.format = chosen_format
+        application.status = ApplicationStatus.ACCEPTED
+        application.save(update_fields=["format", "status", "updated_at"])
         offer.is_used = True
         offer.save(update_fields=["is_used"])
 

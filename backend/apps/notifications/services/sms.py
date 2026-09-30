@@ -34,6 +34,11 @@ class SmsService:
         cls._send(phone, text)
 
     @classmethod
+    def send_offer_options_notification(cls, phone: str, short_label: str, offer_url: str) -> None:
+        text = f"Мы подготовили несколько вариантов сотрудничества по {short_label} \nВыберите подходящий по ссылке: {offer_url}"
+        cls._send(phone, text)
+
+    @classmethod
     def send_rejection_notification(cls, phone: str, short_label: str, reason: str) -> None:
         text = f"К сожалению, мы не можем принять {short_label} \nПричина: {reason}"
         cls._send(phone, text)
