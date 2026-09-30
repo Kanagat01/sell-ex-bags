@@ -70,13 +70,23 @@ def get_commission_rate(sale_price: Decimal) -> Decimal:
     return Decimal("0.35")
 
 
-def commission_seller_gets(sale_price: Decimal) -> Decimal:
-    """Сколько получит комитент после продажи (минимальная стоимость продажи).
-    Повторяет calcCommissionBreakdown с фронта: выделяем НДС 5% (цена / 1,05),
-    затем вычитаем комиссию."""
+def commission_breakdown(sale_price: Decimal) -> dict:
+    """Разбивка суммы продажи при реализации. Повторяет calcCommissionBreakdown
+    с фронта: выделяем НДС 5% (цена / 1,05), затем вычитаем комиссию."""
     after_vat = (sale_price / Decimal("1.05")).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-    commission = (after_vat * get_commission_rate(sale_price)).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-    return after_vat - commission
+    rate = get_commission_rate(sale_price)
+    commission = (after_vat * rate).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    return {
+        "vat": sale_price - after_vat,
+        "rate": rate,
+        "commission": commission,
+        "seller_gets": after_vat - commission,
+    }
+
+
+def commission_seller_gets(sale_price: Decimal) -> Decimal:
+    """Сколько получит комитент после продажи (минимальная стоимость продажи)"""
+    return commission_breakdown(sale_price)["seller_gets"]
 
 
 class DocumentService:

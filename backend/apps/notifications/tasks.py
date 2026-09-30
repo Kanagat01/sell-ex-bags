@@ -47,22 +47,78 @@ def _offer_label(options) -> str:
     return label
 
 
-def _options_text(options) -> str:
-    """Список вариантов для письма: формат — сумма"""
-    from apps.applications.models import ApplicationFormat
-    from apps.contracts.services import commission_seller_gets
+def _item_name(item) -> str:
+    return f"{item.brand} {item.model}".strip()
+
+
+def _commission_lines(option_items) -> list[str]:
+    """Разбивка по каждому изделию для реализации — как в личном кабинете"""
+    from apps.contracts.services import commission_breakdown
 
     lines = []
+    for item, price in option_items:
+        b = commission_breakdown(price)
+        lines += [
+            f"• {_item_name(item)}",
+            f"  Сумма продажи: {_fmt_rub(price)}",
+            f"  − НДС 5%: {_fmt_rub(b['vat'])}",
+            f"  − Комиссия ex-bags ({b['rate'] * 100:.0f}%): {_fmt_rub(b['commission'])}",
+            f"  Вы получите: {_fmt_rub(b['seller_gets'])}",
+        ]
+    return lines
+
+
+def _seller_gets_total(option_items):
+    from apps.contracts.services import commission_seller_gets
+
+    return sum(commission_seller_gets(price) for _, price in option_items)
+
+
+def _offer_text(fmt, option_items) -> str:
+    """Текст предложения по одному формату для письма"""
+    from apps.applications.models import ApplicationFormat
+
+    total = sum(price for _, price in option_items)
+    if fmt == ApplicationFormat.COMMISSION:
+        lines = ["Мы готовы принять на реализацию:"] + _commission_lines(option_items)
+        if len(option_items) > 1:
+            lines.append(f"Итого вы получите после продажи: {_fmt_rub(_seller_gets_total(option_items))}")
+        return "\n".join(lines)
+
+    prefix = "депозит в магазине " if fmt == ApplicationFormat.TRADE_IN else ""
+    lines = [f"Мы готовы предложить вам {prefix}{_fmt_rub(total)} за:"]
+    lines += [f"• {_item_name(item)} — {_fmt_rub(price)}" for item, price in option_items]
+    return "\n".join(lines)
+
+
+def _options_text(options) -> str:
+    """Список вариантов для письма, когда клиенту предложено несколько форматов"""
+    from apps.applications.models import ApplicationFormat
+
+    blocks = []
     for fmt, option_items in options:
         total = sum(price for _, price in option_items)
         if fmt == ApplicationFormat.COMMISSION:
-            seller_gets = sum(commission_seller_gets(price) for _, price in option_items)
-            lines.append(f"• Реализация — сумма продажи {_fmt_rub(total)}, вы получите {_fmt_rub(seller_gets)}")
+            lines = [f"Реализация — вы получите {_fmt_rub(_seller_gets_total(option_items))} после продажи:"]
+            lines += _commission_lines(option_items)
         elif fmt == ApplicationFormat.TRADE_IN:
-            lines.append(f"• Trade-In — депозит {_fmt_rub(total)}")
+            lines = [f"Trade-In — депозит {_fmt_rub(total)}"]
         else:
-            lines.append(f"• Выкуп — {_fmt_rub(total)}")
-    return "\n".join(lines)
+            lines = [f"Выкуп — {_fmt_rub(total)}"]
+        blocks.append("\n".join(lines))
+    return "\n\n".join(blocks)
+
+
+def _offer_sms_text(fmt, option_items) -> str:
+    """Короткое описание предложения для SMS"""
+    from apps.applications.models import ApplicationFormat
+
+    total = sum(price for _, price in option_items)
+    if fmt == ApplicationFormat.COMMISSION:
+        return f"реализация за {_fmt_rub(total)}, вы получите {_fmt_rub(_seller_gets_total(option_items))} после продажи"
+    if fmt == ApplicationFormat.TRADE_IN:
+        return f"депозит в магазине {_fmt_rub(total)}"
+    return f"выкуп за {_fmt_rub(total)}"
 
 
 def _items_text(application, with_price: bool = False, rejected: bool = False) -> str:
@@ -117,13 +173,12 @@ def send_offer_email(self, application_id: str) -> None:
             offer_url=offer_url,
         )
         return
-    total_amount = sum(i.offered_price for i in application.items.all() if i.offered_price)
 
+    fmt, option_items = options[0]
     EmailService.send_offer_notification(
         email=application.email,
-        short_label=_short_label(application),
-        items_text=_items_text(application, with_price=True),
-        amount=total_amount,
+        short_label=_offer_label(options),
+        offer_text=_offer_text(fmt, option_items),
         offer_url=offer_url,
     )
 
@@ -143,12 +198,12 @@ def send_offer_sms(self, application_id: str) -> None:
             offer_url=offer_url,
         )
         return
-    total_amount = sum(i.offered_price for i in application.items.all() if i.offered_price)
 
+    fmt, option_items = options[0]
     SmsService.send_offer_notification(
         phone=application.phone,
-        short_label=_short_label(application),
-        amount=total_amount,
+        short_label=_offer_label(options),
+        offer_text=_offer_sms_text(fmt, option_items),
         offer_url=offer_url,
     )
 

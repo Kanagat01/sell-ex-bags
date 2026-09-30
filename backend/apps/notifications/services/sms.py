@@ -29,8 +29,8 @@ class SmsService:
         logger.info(f"SMS успешно отправлен: {result}")
 
     @classmethod
-    def send_offer_notification(cls, phone: str, short_label: str, amount: float, offer_url: str) -> None:
-        text = f"Мы готовы предложить вам {amount} ₽ за {short_label} \nПерейдите по ссылке: {offer_url}"
+    def send_offer_notification(cls, phone: str, short_label: str, offer_text: str, offer_url: str) -> None:
+        text = f"Предложение по {short_label}: {offer_text} \nПерейдите по ссылке: {offer_url}"
         cls._send(phone, text)
 
     @classmethod

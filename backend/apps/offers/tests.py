@@ -135,9 +135,42 @@ class MultiFormatOfferTests(TestCase):
 
         body = mail.outbox[0].body
         self.assertIn("несколько вариантов", body)
-        self.assertIn("• Выкуп — 70 000 ₽", body)
-        self.assertIn("• Trade-In — депозит 90 000 ₽", body)
+        self.assertIn("Выкуп — 70 000 ₽", body)
+        self.assertIn("Trade-In — депозит 90 000 ₽", body)
         # 120000 → 80000, 50000 → 30952 (НДС / 1,05, комиссия 30% и 35%)
-        self.assertIn("• Реализация — сумма продажи 170 000 ₽, вы получите 110 952 ₽", body)
+        self.assertIn("Реализация — вы получите 110 952 ₽ после продажи", body)
+        self.assertIn("  − Комиссия ex-bags (35%): 16 667 ₽", body)
         self.assertIn("Saint Laurent Lou Lou +1 изд.", mail.outbox[0].subject)
         self.assertIn("несколько вариантов", send_sms.call_args.args[1])
+
+    @override_settings(FRONTEND_URL="https://sell.example")
+    def test_single_commission_notification_shows_breakdown(self):
+        self._approve([
+            {"format": "commission", "items": [{"id": self.bag.id, "offered_price": 160000}]},
+        ])
+        with mock.patch("apps.notifications.services.sms.SmsService._send") as send_sms:
+            tasks.send_offer_email.apply(args=[str(self.application.id)]).get()
+            tasks.send_offer_sms.apply(args=[str(self.application.id)]).get()
+
+        body = mail.outbox[0].body
+        # 160000 / 1,05 = 152381 → НДС 7619, комиссия 30% = 45714, на руки 106667
+        for line in [
+            "Мы готовы принять на реализацию:",
+            "• Saint Laurent Lou Lou",
+            "  Сумма продажи: 160 000 ₽",
+            "  − НДС 5%: 7 619 ₽",
+            "  − Комиссия ex-bags (30%): 45 714 ₽",
+            "  Вы получите: 106 667 ₽",
+        ]:
+            self.assertIn(line, body)
+        self.assertNotIn("160000.00", body)
+        self.assertIn("реализация за 160 000 ₽, вы получите 106 667 ₽ после продажи", send_sms.call_args.args[1])
+
+    @override_settings(FRONTEND_URL="https://sell.example")
+    def test_single_purchase_notification(self):
+        self._approve([
+            {"format": "purchase", "items": [{"id": self.bag.id, "offered_price": 70000}]},
+        ])
+        tasks.send_offer_email.apply(args=[str(self.application.id)]).get()
+        body = mail.outbox[0].body
+        self.assertIn("Мы готовы предложить вам 70 000 ₽ за:\n• Saint Laurent Lou Lou — 70 000 ₽", body)
