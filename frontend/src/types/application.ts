@@ -58,8 +58,6 @@ export interface Application {
   signed_documents: SignedDocument[];
   trade_in_item_url: string;
   trade_in_certificate_amount: string | null;
-  // Варианты, отправленные клиенту (пока он не выбрал один)
-  offer_options: SentOfferOption[];
   created_at: string;
   updated_at: string;
 }
@@ -88,18 +86,9 @@ export interface ItemOfferPrice {
   offered_price: number;
 }
 
-export interface SentOfferOption {
-  format: ApplicationFormat;
-  items: { id: string; price: string }[];
-}
-
-export interface ApproveOfferOption {
+export interface ApproveApplicationPayload {
   format: ApplicationFormat;
   items: ItemOfferPrice[];
-}
-
-export interface ApproveApplicationPayload {
-  options: ApproveOfferOption[];
 }
 
 export interface RejectApplicationPayload {

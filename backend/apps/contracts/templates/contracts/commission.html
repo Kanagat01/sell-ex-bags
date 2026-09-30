@@ -40,8 +40,6 @@
         font-weight: 300;
         padding: 2mm;
         vertical-align: top;
-        text-align: left;
-        hyphens: none;
         border: 1px solid #000;
         box-sizing: border-box;
       }
@@ -133,18 +131,20 @@
 
           <table class="custom-table">
             <colgroup>
-              <col style="width: 34%" />
-              <col style="width: 14%" />
-              <col style="width: 26%" />
-              <col style="width: 26%" />
+              <col style="width: 38%" />
+              <col style="width: 22%" />
+              <col style="width: 40%" />
+              <!-- <col style="width: 35%" /> -->
             </colgroup>
 
             <thead>
               <tr>
                 <th>Наименование Товара</th>
                 <th>Количество</th>
-                <th>Максимальная стоимость продажи, согласованная Комитентом</th>
-                <th>Минимальная стоимость продажи, согласованная Комитентом</th>
+                <th>Стоимость продажи, согласованная Комитентом</th>
+                <!-- <th>
+                  Максимальная стоимость продажи, согласованная Комитентом
+                </th> -->
               </tr>
             </thead>
 
@@ -153,14 +153,12 @@
               <tr>
                 <td>{{ item.brand }} {{ item.model }}</td>
                 <td>1</td>
-                <td>{{ item.offered_price|floatformat:"-2" }} ₽</td>
-                <td>{{ item.min_price|floatformat:"-2" }} ₽</td>
+                <td>{{ item.offered_price }} ₽</td>
               </tr>
               {% endfor %}
               <tr>
-                <td colspan="2">Итого</td>
-                <td>{{ contract_amount|floatformat:"-2" }} ₽</td>
-                <td>{{ contract_min_amount|floatformat:"-2" }} ₽</td>
+                <td>Итого</td>
+                <td colspan="2">{{ contract_amount }} ₽</td>
               </tr>
             </tbody>
           </table>

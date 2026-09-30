@@ -107,7 +107,6 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     items = ApplicationItemSerializer(many=True, read_only=True)
     act_sent = serializers.SerializerMethodField()
     signed_documents = serializers.SerializerMethodField()
-    offer_options = serializers.SerializerMethodField()
 
     def get_act_sent(self, obj):
         from apps.contracts.models import DocumentType
@@ -116,19 +115,6 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
         if obj.status == ApplicationStatus.ITEM_TRANSFERRED:
             return obj.documents.filter(document_type=DocumentType.RETURN_ACT).exists()
         return False
-
-    def get_offer_options(self, obj):
-        """Отправленные клиенту варианты (пока он не выбрал один)"""
-        offer = getattr(obj, "offer", None)
-        if offer is None or obj.status != ApplicationStatus.OFFER_SENT:
-            return []
-        return [
-            {
-                "format": fmt,
-                "items": [{"id": item.id, "price": str(price)} for item, price in option_items],
-            }
-            for fmt, option_items in offer.get_options()
-        ]
 
     def get_signed_documents(self, obj):
         from apps.contracts.models import DocumentType
@@ -151,7 +137,6 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
             "id", "format", "rejection_reason", "phone", "email",
             "status", "items", "act_sent", "signed_documents",
             "trade_in_item_url", "trade_in_certificate_amount",
-            "offer_options",
             "created_at", "updated_at",
         ]
 
@@ -162,28 +147,10 @@ class ItemOfferPriceSerializer(serializers.Serializer):
         max_digits=12, decimal_places=2, min_value=1)
 
 
-class OfferOptionSerializer(serializers.Serializer):
-    """Один вариант сотрудничества: формат и суммы по изделиям"""
+class ApproveApplicationSerializer(serializers.Serializer):
+    """Администратор одобряет заявку и указывает суммы для каждого изделия"""
     format = serializers.ChoiceField(choices=ApplicationFormat.choices)
     items = ItemOfferPriceSerializer(many=True, min_length=1)
-
-    def validate_items(self, value):
-        ids = [entry["id"] for entry in value]
-        if len(ids) != len(set(ids)):
-            raise ValidationError("Изделие указано несколько раз")
-        return value
-
-
-class ApproveApplicationSerializer(serializers.Serializer):
-    """Администратор одобряет заявку: один или несколько форматов на выбор
-    клиенту, для каждого — суммы по изделиям"""
-    options = OfferOptionSerializer(many=True, min_length=1, max_length=len(ApplicationFormat.choices))
-
-    def validate_options(self, value):
-        formats = [option["format"] for option in value]
-        if len(formats) != len(set(formats)):
-            raise ValidationError("Формат указан несколько раз")
-        return value
 
 
 class RejectApplicationSerializer(serializers.Serializer):

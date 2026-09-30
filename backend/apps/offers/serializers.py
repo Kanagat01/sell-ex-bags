@@ -3,30 +3,28 @@ from .models import Offer, PersonalData
 
 
 class OfferPublicSerializer(serializers.ModelSerializer):
-    """Данные предложения для продавца по токену. options — варианты
-    сотрудничества (один или несколько), клиент выбирает один."""
+    """Данные предложения для продавца по токену"""
 
+    format = serializers.CharField(source="application.format")
     trade_in_item_url = serializers.CharField(source="application.trade_in_item_url")
     trade_in_certificate_amount = serializers.DecimalField(
         source="application.trade_in_certificate_amount",
         max_digits=12, decimal_places=2, allow_null=True,
     )
-    options = serializers.SerializerMethodField()
+    items = serializers.SerializerMethodField()
 
     class Meta:
         model = Offer
-        fields = ["trade_in_item_url", "trade_in_certificate_amount", "options", "expires_at"]
+        fields = ["format", "trade_in_item_url", "trade_in_certificate_amount", "items", "expires_at"]
 
-    def get_options(self, obj):
+    def get_items(self, obj):
         return [
             {
-                "format": fmt,
-                "items": [
-                    {"brand": item.brand, "model": item.model, "offered_price": str(price)}
-                    for item, price in option_items
-                ],
+                "brand": item.brand,
+                "model": item.model,
+                "offered_price": str(item.offered_price),
             }
-            for fmt, option_items in obj.get_options()
+            for item in obj.application.items.filter(offered_price__isnull=False)
         ]
 
 
