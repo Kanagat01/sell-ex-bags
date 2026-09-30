@@ -44,10 +44,12 @@ export function getCommissionRate(salePrice: number): number {
 }
 
 export function calcCommissionBreakdown(salePrice: number): CommissionBreakdown {
-  const vat = Math.round(salePrice * 0.05)
-  const afterVat = salePrice - vat
+  // НДС 5% выделяется из стоимости: цена / 1,05
+  // (целочисленно, чтобы не ловить ошибки округления float)
+  const afterVat = Math.round((salePrice * 100) / 105)
+  const vat = salePrice - afterVat
   const commissionRate = getCommissionRate(salePrice)
-  const commission = Math.round(afterVat * commissionRate)
+  const commission = Math.round((afterVat * Math.round(commissionRate * 100)) / 100)
   const sellerGets = afterVat - commission
   return { salePrice, vat, afterVat, commissionRate, commission, sellerGets }
 }

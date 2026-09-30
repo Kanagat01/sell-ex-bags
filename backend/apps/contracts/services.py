@@ -72,9 +72,9 @@ def get_commission_rate(sale_price: Decimal) -> Decimal:
 
 def commission_seller_gets(sale_price: Decimal) -> Decimal:
     """Сколько получит комитент после продажи (минимальная стоимость продажи).
-    Повторяет calcCommissionBreakdown с фронта: −НДС 5%, затем −комиссия."""
-    vat = (sale_price * Decimal("0.05")).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-    after_vat = sale_price - vat
+    Повторяет calcCommissionBreakdown с фронта: выделяем НДС 5% (цена / 1,05),
+    затем вычитаем комиссию."""
+    after_vat = (sale_price / Decimal("1.05")).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
     commission = (after_vat * get_commission_rate(sale_price)).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
     return after_vat - commission
 
