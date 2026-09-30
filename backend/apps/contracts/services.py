@@ -87,7 +87,7 @@ class DocumentService:
             "seller_fullname": personal_data.full_name,
             "seller_passport": f"{personal_data.passport_series} {personal_data.passport_number}",
             "seller_passport_issued_by": personal_data.passport_issued_by,
-            "seller_passport_date": personal_data.passport_issued_date.strftime("%d.%m.%Y"),
+            "seller_passport_issued_date": personal_data.passport_issued_date.strftime("%d.%m.%Y"),
             "seller_inn": personal_data.inn,
             "seller_dob": personal_data.date_of_birth.strftime("%d.%m.%Y"),
             "seller_address": personal_data.registration_address,

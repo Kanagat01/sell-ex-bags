@@ -5,6 +5,7 @@
 - **НИКОГДА** не добавлять авторство Claude/AI нигде: ни в коммиты (`Co-Authored-By`,
   «Generated with Claude» и т.п.), ни в код, ни в PR, ни в любой текст.
 - Ветка — **master** (trunk-based), коммитим прямо в неё.
+- Перед началом любой работы: `git fetch origin master` и, если мастер ушёл вперёд, `git pull`.
 - Сообщения коммитов — по-русски, коротко, в нижнем регистре (стиль существующих:
   `hotfix`, `logo changed, new urls`).
 - `origin` = `github.com/Kanagat01/sell-ex-bags.git` (НЕ `ex-bags.git` — это другой проект).
