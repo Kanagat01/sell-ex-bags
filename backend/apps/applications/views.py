@@ -103,11 +103,10 @@ class AdminApproveApplicationView(APIView):
         serializer = ApproveApplicationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        ApplicationService.approve(
-            application,
-            serializer.validated_data["items"],
-            new_format=serializer.validated_data.get("format"),
-        )
+        try:
+            ApplicationService.approve(application, serializer.validated_data["options"])
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"detail": "Заявка одобрена, уведомление отправлено продавцу"})
 
 

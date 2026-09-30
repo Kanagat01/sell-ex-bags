@@ -10,7 +10,7 @@ class EmailService:
 
     @staticmethod
     def send_offer_notification(
-        email: str, short_label: str, items_text: str, amount, offer_url: str
+        email: str, short_label: str, offer_text: str, offer_url: str
     ) -> None:
         if not email:
             return
@@ -18,8 +18,26 @@ class EmailService:
             subject=f"Предложение по вашей заявке — {short_label}",
             body=(
                 f"Добрый день!\n\n"
-                f"Мы готовы предложить вам {amount} ₽ за:\n{items_text}\n\n"
+                f"{offer_text}\n\n"
                 f"Перейдите по ссылке, чтобы ознакомиться с условиями и принять решение:\n{offer_url}\n\n"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[email],
+        )
+        msg.send()
+
+    @staticmethod
+    def send_offer_options_notification(
+        email: str, short_label: str, options_text: str, offer_url: str
+    ) -> None:
+        if not email:
+            return
+        msg = EmailMessage(
+            subject=f"Предложение по вашей заявке — {short_label}",
+            body=(
+                f"Добрый день!\n\n"
+                f"Мы подготовили для вас несколько вариантов сотрудничества:\n\n{options_text}\n\n"
+                f"Перейдите по ссылке, чтобы ознакомиться с условиями и выбрать подходящий вариант:\n{offer_url}\n\n"
             ),
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[email],

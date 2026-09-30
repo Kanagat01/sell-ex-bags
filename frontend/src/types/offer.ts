@@ -6,11 +6,16 @@ export interface OfferItem {
   offered_price: string;
 }
 
-export interface Offer {
+export interface OfferOption {
   format: ApplicationFormat;
+  items: OfferItem[];
+}
+
+export interface Offer {
   trade_in_item_url: string;
   trade_in_certificate_amount: string | null;
-  items: OfferItem[];
+  // Один или несколько форматов — клиент выбирает один на всю заявку
+  options: OfferOption[];
   expires_at: string;
 }
 
