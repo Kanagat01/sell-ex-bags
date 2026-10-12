@@ -129,8 +129,8 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@ex-bags.ru")
 # Не даём SMTP-соединению висеть бесконечно и держать воркер
 EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
 
-# Offer token TTL (часы)
-OFFER_TOKEN_TTL_HOURS = 72
+# Offer token TTL (часы) — ссылка с предложением/условиями для продавца
+OFFER_TOKEN_TTL_HOURS = 24 * 7  # неделя
 
 # SMS код
 SMS_CODE_TTL_MINUTES = 5
