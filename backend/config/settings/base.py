@@ -79,6 +79,13 @@ USE_L10N = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# DATA_UPLOAD_MAX_MEMORY_SIZE считается без учёта файлов (только текстовые
+# поля формы вроде items_data) — поднимаем с запасом на заявку с несколькими
+# изделиями. FILE_UPLOAD_MAX_MEMORY_SIZE нарочно не трогаем: это порог
+# RAM-vs-диск для файлов, дефолт 2.5 МБ значит, что фото с iPhone (обычно
+# десятки МБ) сразу уходят на диск, не раздувая память сервера.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 МБ
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # DRF

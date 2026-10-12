@@ -2,7 +2,7 @@
 
 import { useCallback, useId, DragEvent } from "react"
 import { useFileUpload } from "@/hooks"
-import { PHOTO_MAX_COUNT, PHOTO_MIN_COUNT } from "@/utils"
+import { PHOTO_MAX_COUNT, PHOTO_MIN_COUNT, PHOTO_MAX_SIZE_MB } from "@/utils"
 
 interface FileUploadProps {
   onChange: (files: File[]) => void
@@ -50,7 +50,7 @@ export const FileUpload = ({ onChange, error }: FileUploadProps) => {
         <label htmlFor={inputId} className="flex flex-col items-center gap-2 cursor-pointer">
           <span className="text-sm font-medium">Перетащите фото или нажмите для выбора</span>
           <span className="text-xs text-neutral-500">
-            JPG, PNG · до 10 МБ · от {PHOTO_MIN_COUNT} до {PHOTO_MAX_COUNT} фото
+            JPG, PNG · до {PHOTO_MAX_SIZE_MB} МБ · от {PHOTO_MIN_COUNT} до {PHOTO_MAX_COUNT} фото
           </span>
         </label>
       </div>

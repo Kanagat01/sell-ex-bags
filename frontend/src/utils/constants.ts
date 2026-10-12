@@ -133,5 +133,5 @@ export const AVAILABLE_ACTS: Record<ApplicationFormat, { type: string; label: st
 
 export const PHOTO_MIN_COUNT = 3;
 export const PHOTO_MAX_COUNT = 10;
-export const PHOTO_MAX_SIZE_MB = 10;
+export const PHOTO_MAX_SIZE_MB = 30;
 export const PHOTO_ALLOWED_TYPES = ["image/jpeg", "image/png"];
