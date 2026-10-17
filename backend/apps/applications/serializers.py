@@ -1,4 +1,5 @@
 import json
+import re
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -42,6 +43,11 @@ class CreateApplicationSerializer(serializers.Serializer):
         max_digits=12, decimal_places=2, required=False, allow_null=True, default=None
     )
     items_data = serializers.CharField()
+
+    def validate_phone(self, value):
+        if not re.fullmatch(r"\+7\d{10}", value):
+            raise ValidationError("Номер в формате +7XXXXXXXXXX, например +79991234567")
+        return value
 
     def validate_items_data(self, value):
         try:

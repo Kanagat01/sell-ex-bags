@@ -3,6 +3,8 @@ import logging
 from django.conf import settings
 from smsaero import SmsAero
 
+from apps.applications.phone import normalize_phone
+
 logger = logging.getLogger(__name__)
 
 
@@ -23,7 +25,12 @@ class SmsService:
             logger.warning("SMSAero не настроен (SMSAERO_EMAIL/SMSAERO_API_KEY) — SMS пропущен")
             return
 
-        number = int("".join(ch for ch in phone if ch.isdigit()))
+        # SMSAero ждёт номер вида 79991234567 — «8…» и номера без кода
+        # страны приводим к нему (старые заявки хранят номер как ввели).
+        normalized = normalize_phone(phone)
+        if normalized is None:
+            raise ValueError(f"Некорректный номер телефона для SMS: {phone!r}")
+        number = int(normalized[1:])
         logger.info(f"Отправляем SMS на {number}: {text}")
         result = cls._client().send_sms(number, text)
         logger.info(f"SMS успешно отправлен: {result}")
