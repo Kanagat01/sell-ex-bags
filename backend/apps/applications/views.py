@@ -13,6 +13,7 @@ from django.db import transaction
 from apps.notifications.tasks import send_new_application_notification
 
 from .models import Application, ApplicationItem, ApplicationStatus
+from .phone import normalize_phone
 from .serializers import (
     ApproveApplicationSerializer,
     ApplicationDetailSerializer,
@@ -191,7 +192,8 @@ class ServiceApplicationsByPhoneView(ListAPIView):
         if not secret or secret != settings.SELL_SERVICE_SECRET:
             raise PermissionDenied()
 
-        phone = self.request.query_params.get("phone", "").strip()
+        raw_phone = self.request.query_params.get("phone", "").strip()
+        phone = normalize_phone(raw_phone) or raw_phone
         if not phone:
             return Application.objects.none()
 

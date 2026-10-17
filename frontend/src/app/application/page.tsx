@@ -277,7 +277,9 @@ export default function ApplicationPage() {
               <Input
                 label="Телефон"
                 type="tel"
-                placeholder="+7 (999) 123-45-67"
+                placeholder="+79991234567"
+                pattern="\+7\d{10}"
+                title="Номер в формате +7XXXXXXXXXX, например +79991234567"
                 error={errors.phone?.message}
                 required
                 {...register("phone")}
