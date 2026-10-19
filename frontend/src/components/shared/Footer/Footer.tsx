@@ -11,7 +11,7 @@ export const Footer = () => {
         <div className="footer__col">
           <h4>контакты</h4>
           <ul>
-            <li>москва, малый козихинский 12</li>
+            <li>москва, малая бронная 28</li>
             <li><a href="tel:88005007336">8 800 500 73 36</a></li>
             <li><a href="mailto:info@ex-bags.ru">info@ex-bags.ru</a></li>
             <li><a href="https://t.me/exbags" target="_blank" rel="noopener noreferrer">telegram: @exbags</a></li>
@@ -21,11 +21,11 @@ export const Footer = () => {
       <div className="footer__strip">
         <div className="footer__strip__inner">
           <span>moscow · 2 0 2 6</span><span>·</span>
-          <span>малый козихинский 12</span><span>·</span>
+          <span>малая бронная 28</span><span>·</span>
           <span>reload 2.0</span><span>·</span>
           <span>selective luxury bags</span><span>·</span>
           <span>moscow · 2 0 2 6</span><span>·</span>
-          <span>малый козихинский 12</span><span>·</span>
+          <span>малая бронная 28</span><span>·</span>
           <span>reload 2.0</span><span>·</span>
         </div>
       </div>
