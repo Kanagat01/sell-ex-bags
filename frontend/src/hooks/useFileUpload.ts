@@ -24,36 +24,28 @@ export const useFileUpload = ({ maxFiles, onChange }: UseFileUploadOptions) => {
         }
       }
 
-      setFiles((prev) => {
-        const merged = [...prev, ...fileArray].slice(0, maxFiles)
+      const merged = [...files, ...fileArray].slice(0, maxFiles)
+      const newPreviews = merged.map((f) => URL.createObjectURL(f))
 
-        const newPreviews = merged.map((f) => URL.createObjectURL(f))
-        setPreviews((old) => {
-          old.forEach((url) => URL.revokeObjectURL(url))
-          return newPreviews
-        })
-
-        onChange(merged)
-        return merged
-      })
+      previews.forEach((url) => URL.revokeObjectURL(url))
+      setFiles(merged)
+      setPreviews(newPreviews)
+      onChange(merged)
     },
-    [maxFiles, onChange]
+    [files, previews, maxFiles, onChange]
   )
 
   const removeFile = useCallback(
     (index: number) => {
-      setFiles((prev) => {
-        const updated = prev.filter((_, i) => i !== index)
-        const newPreviews = updated.map((f) => URL.createObjectURL(f))
-        setPreviews((old) => {
-          old.forEach((url) => URL.revokeObjectURL(url))
-          return newPreviews
-        })
-        onChange(updated)
-        return updated
-      })
+      const updated = files.filter((_, i) => i !== index)
+      const newPreviews = updated.map((f) => URL.createObjectURL(f))
+
+      previews.forEach((url) => URL.revokeObjectURL(url))
+      setFiles(updated)
+      setPreviews(newPreviews)
+      onChange(updated)
     },
-    [onChange]
+    [files, previews, onChange]
   )
 
   return { files, previews, error, addFiles, removeFile }
