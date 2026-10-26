@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { Controller } from "react-hook-form"
 import { useApplicationStore } from "@/store"
 import { useApplicationForm } from "@/hooks"
-import { Button, Input, Select, Textarea, FileUpload } from "@/components/ui"
+import { Button, Input, PhoneInput, Select, Textarea, FileUpload } from "@/components/ui"
 import { ErrorMessage } from "@/components/shared"
 import {
   FORMAT_LABELS, BRANDS_BAGS, BRANDS_WATCHES, ITEM_CATEGORIES, CONDITION_LABELS,
@@ -29,7 +30,7 @@ export default function ApplicationPage() {
   const [categories, setCategories] = useState<(ItemCategory | "")[]>([""])
   const [tradeInType, setTradeInType] = useState<"url" | "certificate">("url")
 
-  const { register, formState: { errors, isSubmitting }, setValue, watch } = form
+  const { register, control, formState: { errors, isSubmitting }, setValue, watch } = form
   const watchedItems = watch("items")
 
   useEffect(() => {
@@ -274,15 +275,20 @@ export default function ApplicationPage() {
           <div className="flex flex-col gap-4 border-t border-(--line) pt-8">
             <h2 className="text-xl font-medium lowercase">Контакты</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-2">
-              <Input
-                label="Телефон"
-                type="tel"
-                placeholder="+79991234567"
-                pattern="\+7\d{10}"
-                title="Номер в формате +7XXXXXXXXXX, например +79991234567"
-                error={errors.phone?.message}
-                required
-                {...register("phone")}
+              <Controller
+                name="phone"
+                control={control}
+                render={({ field }) => (
+                  <PhoneInput
+                    label="Телефон"
+                    error={errors.phone?.message}
+                    required
+                    name={field.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
               />
               <Input
                 label="Email"

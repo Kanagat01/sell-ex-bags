@@ -10,6 +10,7 @@ import {
   PHOTO_MAX_SIZE_MB,
   PHOTO_ALLOWED_TYPES,
   getApiError,
+  normalizePhone,
 } from "@/utils"
 import { ApplicationCondition, ApplicationFormat } from "@/types"
 
@@ -70,7 +71,7 @@ export const useApplicationForm = () => {
   const form = useForm<ApplicationFormData, unknown, ApplicationFormData>({
     resolver: zodResolver(schema) as Resolver<ApplicationFormData>,
     defaultValues: {
-      phone: prefillPhone,
+      phone: normalizePhone(prefillPhone),
       email: prefillEmail,
       items: [emptyItem()],
     },

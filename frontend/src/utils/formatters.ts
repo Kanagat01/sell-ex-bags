@@ -54,6 +54,19 @@ export function calcCommissionBreakdown(salePrice: number): CommissionBreakdown 
   return { salePrice, vat, afterVat, commissionRate, commission, sellerGets }
 }
 
+// Любой ввод/вставку/префилл приводим к «до 10 цифр, идущих сразу после
+// кода страны»: отбрасываем ведущие 7/8 (код страны), остальное — цифры
+// номера, начиная с 9. Используется и маской ввода, и дефолтом формы.
+export const extractPhoneDigits = (raw: string): string => {
+  let digits = raw.replace(/\D/g, "")
+  if (digits.startsWith("7") || digits.startsWith("8")) {
+    digits = digits.slice(1)
+  }
+  return digits.slice(0, 10)
+}
+
+export const normalizePhone = (raw: string): string => `+7${extractPhoneDigits(raw)}`
+
 export const formatPhone = (phone: string): string => {
   const cleaned = phone.replace(/\D/g, "")
   const match = cleaned.match(/^(\d{1})(\d{3})(\d{3})(\d{2})(\d{2})$/)
