@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "apps.applications",
     "apps.offers",
     "apps.contracts",
+    "apps.delivery",
     "apps.notifications",
 ]
 
@@ -116,6 +117,8 @@ CELERY_TASK_SERIALIZER = "json"
 SMSAERO_EMAIL = env("SMSAERO_EMAIL", default="")
 SMSAERO_API_KEY = env("SMSAERO_API_KEY", default="")
 SMSAERO_SIGN = env("SMSAERO_SIGN", default="SMS Aero")
+# "smsaero" — реальная отправка, "console" — просто печатает текст в лог/консоль
+SMS_BACKEND = env("SMS_BACKEND", default="smsaero")
 
 # Email
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -131,6 +134,9 @@ EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
 
 # Offer token TTL (часы) — ссылка с предложением/условиями для продавца
 OFFER_TOKEN_TTL_HOURS = 24 * 7  # неделя
+
+# Delivery token TTL (часы) — ссылка на форму выбора способа передачи сумки
+DELIVERY_TOKEN_TTL_HOURS = 24 * 7  # неделя
 
 # SMS код
 SMS_CODE_TTL_MINUTES = 5

@@ -32,11 +32,14 @@ class OfferAcceptView(APIView):
     def post(self, request: Request, token: str) -> Response:
         try:
             offer = OfferService.get_valid_offer(token)
-            OfferService.accept(offer, str(request.data.get("format") or "") or None)
+            document = OfferService.accept(offer, str(request.data.get("format") or "") or None)
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({"detail": "Предложение принято"})
+        payload = {"detail": "Предложение принято"}
+        if document is not None:
+            payload["sign_token"] = str(document.sign_token)
+        return Response(payload)
 
 
 class OfferDeclineView(APIView):
@@ -66,10 +69,18 @@ class PersonalDataView(APIView):
             return Response({"detail": "Не найдено"}, status=status.HTTP_404_NOT_FOUND)
 
         prefill = OfferService.get_personal_data_prefill(offer.application)
-        if not prefill:
-            return Response({})
+        if prefill:
+            return Response(PersonalDataSerializer(prefill).data)
 
-        return Response(PersonalDataSerializer(prefill).data)
+        # Нет ни своих, ни чужих сохранённых данных — но если заявку создал
+        # админ вручную для нового клиента, ФИО уже известно, подставляем его
+        application = offer.application
+        full_name = " ".join(filter(None, [
+            application.last_name, application.first_name, application.middle_name,
+        ]))
+        if full_name:
+            return Response({"full_name": full_name})
+        return Response({})
 
     def post(self, request: Request, token: str) -> Response:
         try:

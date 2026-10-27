@@ -16,8 +16,8 @@ export const getOffer = async (token: string): Promise<Offer> => {
 export const acceptOffer = async (
   token: string,
   format?: ApplicationFormat
-): Promise<{ detail: string }> => {
-  const { data } = await api.post<{ detail: string }>(`/offer/${token}/accept/`, { format })
+): Promise<{ detail: string; sign_token?: string }> => {
+  const { data } = await api.post<{ detail: string; sign_token?: string }>(`/offer/${token}/accept/`, { format })
   return data
 }
 

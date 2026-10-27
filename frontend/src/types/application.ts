@@ -31,9 +31,10 @@ export interface ApplicationItem {
   brand: string;
   model?: string;
   size: string;
-  condition: ApplicationCondition;
+  condition: ApplicationCondition | "";
   defects_description: string;
-  desired_price: string;
+  manual_description: string;
+  desired_price: string | null;
   offered_price: string | null;
   order: number;
   photos: ApplicationPhoto[];
@@ -46,9 +47,29 @@ export interface SignedDocument {
   is_signed: boolean;
 }
 
+export interface PersonalDataSummary {
+  id: number;
+  full_name: string;
+  inn: string;
+}
+
+export interface ClosingReportInfo {
+  uploaded: boolean;
+  sent: boolean;
+  is_signed: boolean;
+  sign_token: string | null;
+}
+
+export interface DeliveryRequestInfo {
+  is_confirmed: boolean;
+  method: string;
+  method_label: string;
+  address: string;
+}
+
 export interface Application {
   id: string;
-  format: ApplicationFormat;
+  format: ApplicationFormat | "";
   phone: string;
   email: string;
   status: ApplicationStatus;
@@ -60,6 +81,14 @@ export interface Application {
   trade_in_certificate_amount: string | null;
   // Варианты, отправленные клиенту (пока он не выбрал один)
   offer_options: SentOfferOption[];
+  last_name: string;
+  first_name: string;
+  middle_name: string;
+  is_manual: boolean;
+  personal_data: PersonalDataSummary | null;
+  amendment_sent: boolean;
+  closing_report: ClosingReportInfo | null;
+  delivery_request: DeliveryRequestInfo | null;
   created_at: string;
   updated_at: string;
 }
@@ -112,4 +141,27 @@ export interface UpdateItemPayload {
   size?: string;
   condition?: ApplicationCondition;
   defects_description?: string;
+  manual_description?: string;
+  desired_price?: number;
+}
+
+export interface ManualCreateApplicationPayload {
+  phone: string;
+  last_name?: string;
+  first_name?: string;
+  middle_name?: string;
+  description: string;
+  personal_data_id?: number;
+}
+
+export interface ClientSearchResult {
+  id: number;
+  full_name: string;
+  date_of_birth: string;
+  inn: string;
+  last_phone: string;
+}
+
+export interface SendAmendmentPayload {
+  items: { item_id: string; new_price: number }[];
 }

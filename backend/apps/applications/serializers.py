@@ -4,6 +4,7 @@ import re
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from .models import *
+from .phone import normalize_phone
 
 PHOTO_MIN_COUNT = 3
 PHOTO_MAX_COUNT = 10
@@ -27,7 +28,8 @@ class ApplicationItemSerializer(serializers.ModelSerializer):
         model = ApplicationItem
         fields = [
             "id", "brand", "model", "size", "condition",
-            "defects_description", "desired_price", "offered_price",
+            "defects_description", "manual_description",
+            "desired_price", "offered_price",
             "order", "photos",
         ]
 
@@ -105,7 +107,11 @@ class ApplicationListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Application
-        fields = ["id", "format", "phone", "status", "items", "created_at"]
+        fields = [
+            "id", "format", "phone", "status", "items",
+            "last_name", "first_name", "middle_name", "is_manual",
+            "created_at",
+        ]
 
 
 class ApplicationDetailSerializer(serializers.ModelSerializer):
@@ -114,6 +120,10 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     act_sent = serializers.SerializerMethodField()
     signed_documents = serializers.SerializerMethodField()
     offer_options = serializers.SerializerMethodField()
+    personal_data = serializers.SerializerMethodField()
+    amendment_sent = serializers.SerializerMethodField()
+    closing_report = serializers.SerializerMethodField()
+    delivery_request = serializers.SerializerMethodField()
 
     def get_act_sent(self, obj):
         from apps.contracts.models import DocumentType
@@ -122,6 +132,39 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
         if obj.status == ApplicationStatus.ITEM_TRANSFERRED:
             return obj.documents.filter(document_type=DocumentType.RETURN_ACT).exists()
         return False
+
+    def get_personal_data(self, obj):
+        pd = obj.personal_data
+        if not pd:
+            return None
+        return {"id": pd.id, "full_name": pd.full_name, "inn": pd.inn}
+
+    def get_amendment_sent(self, obj):
+        from apps.contracts.models import DocumentType
+        return obj.documents.filter(document_type=DocumentType.AMENDMENT).exists()
+
+    def get_closing_report(self, obj):
+        from apps.contracts.models import DocumentType
+        doc = obj.documents.filter(document_type=DocumentType.CLOSING_REPORT).first()
+        if not doc:
+            return None
+        return {
+            "uploaded": bool(doc.pdf_file),
+            "sent": doc.sent_at is not None,
+            "is_signed": doc.is_signed,
+            "sign_token": str(doc.sign_token),
+        }
+
+    def get_delivery_request(self, obj):
+        dr = getattr(obj, "delivery_request", None)
+        if not dr:
+            return None
+        return {
+            "is_confirmed": dr.is_confirmed,
+            "method": dr.method,
+            "method_label": dr.get_method_display() if dr.method else "",
+            "address": dr.address,
+        }
 
     def get_offer_options(self, obj):
         """Отправленные клиенту варианты (пока он не выбрал один)"""
@@ -155,9 +198,10 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
         model = Application
         fields = [
             "id", "format", "rejection_reason", "phone", "email",
+            "last_name", "first_name", "middle_name", "is_manual", "personal_data",
             "status", "items", "act_sent", "signed_documents",
             "trade_in_item_url", "trade_in_certificate_amount",
-            "offer_options",
+            "offer_options", "amendment_sent", "closing_report", "delivery_request",
             "created_at", "updated_at",
         ]
 
@@ -205,4 +249,33 @@ class RejectApplicationSerializer(serializers.Serializer):
 class UpdateApplicationItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = ApplicationItem
-        fields = ["brand", "model", "size", "condition", "defects_description"]
+        fields = [
+            "brand", "model", "size", "condition",
+            "defects_description", "manual_description", "desired_price",
+        ]
+
+
+class ManualCreateApplicationSerializer(serializers.Serializer):
+    """Администратор создаёт заявку вручную от имени клиента, обратившегося
+    вне платформы. Фото и желаемая цена не вводятся на этом шаге."""
+
+    phone = serializers.CharField(max_length=20)
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
+    first_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
+    middle_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
+    description = serializers.CharField()
+    personal_data_id = serializers.IntegerField(required=False, allow_null=True, default=None)
+
+    def validate_phone(self, value):
+        normalized = normalize_phone(value)
+        if not normalized:
+            raise ValidationError("Некорректный номер телефона")
+        return normalized
+
+    def validate_personal_data_id(self, value):
+        if value is None:
+            return value
+        from apps.offers.models import PersonalData
+        if not PersonalData.objects.filter(pk=value).exists():
+            raise ValidationError("Клиент не найден")
+        return value

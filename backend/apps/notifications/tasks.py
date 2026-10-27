@@ -155,6 +155,11 @@ def send_document_signed_notification(document_id: int) -> None:
     send_document_telegram.delay(document_id)
 
 
+@shared_task
+def send_delivery_confirmed_notification(delivery_request_id: int) -> None:
+    send_delivery_telegram.delay(delivery_request_id)
+
+
 # ==================== Канальные задачи (с retry) ====================
 
 @shared_task(**CHANNEL_RETRY)
@@ -266,3 +271,12 @@ def send_new_application_notification(self, application_id: int) -> None:
 
     application = Application.objects.prefetch_related("items").get(id=application_id)
     TelegramService.send_new_application(application)
+
+
+@shared_task(**CHANNEL_RETRY)
+def send_delivery_telegram(self, delivery_request_id: int) -> None:
+    from apps.delivery.models import DeliveryRequest
+    from apps.notifications.services.telegram import TelegramService
+
+    delivery_request = DeliveryRequest.objects.select_related("application").get(id=delivery_request_id)
+    TelegramService.send_delivery_method_chosen(delivery_request)

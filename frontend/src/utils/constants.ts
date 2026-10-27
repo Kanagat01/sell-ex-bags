@@ -2,6 +2,7 @@ import {
   ApplicationCondition,
   ApplicationFormat,
   ApplicationStatus,
+  DeliveryMethod,
 } from "@/types";
 
 export const BRANDS_BAGS = [
@@ -129,6 +130,23 @@ export const AVAILABLE_ACTS: Record<ApplicationFormat, { type: string; label: st
     { type: "acceptance", label: "Акт приёма-передачи" },
     { type: "return", label: "Акт возврата" },
   ],
+};
+
+export const DELIVERY_METHOD_LABELS: Record<DeliveryMethod, string> = {
+  [DeliveryMethod.BOUTIQUE]: "В бутике (ex)bags",
+  [DeliveryMethod.COURIER_MKAD]: "Бесплатно курьером в пределах МКАД",
+  [DeliveryMethod.COURIER_REGION]: "Курьером в пределах Московской области",
+  [DeliveryMethod.CDEK]: "Курьерской службой СДЭК",
+};
+
+// Фиксированные бизнес-данные (не меняются из админки)
+export const BOUTIQUE_ADDRESS = "г. Москва, ул. Малая Бронная, 28";
+export const BOUTIQUE_HOURS = "ежедневно с 11 до 22";
+export const COURIER_REGION_FEE = 500;
+export const CDEK_INFO = {
+  address: "ПВЗ СДЭК, г. Москва, ул. Садовая-Кудринская, 20",
+  recipient: "ООО «Эксбэгс»",
+  phone: "+7 962 333 11 33",
 };
 
 export const PHOTO_MIN_COUNT = 3;

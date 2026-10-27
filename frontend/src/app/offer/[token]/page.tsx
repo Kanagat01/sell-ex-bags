@@ -32,8 +32,12 @@ export default function OfferPage() {
   const handleAccept = async () => {
     setIsSubmitting(true)
     try {
-      await acceptOffer(token, selectedFormat ?? undefined)
-      router.push(`/offer/${token}/personal-data`)
+      const response = await acceptOffer(token, selectedFormat ?? undefined)
+      if (response.sign_token) {
+        router.push(`/sign/${response.sign_token}`)
+      } else {
+        router.push(`/offer/${token}/personal-data`)
+      }
     } catch (e: unknown) {
       setError(getApiError(e))
     } finally {

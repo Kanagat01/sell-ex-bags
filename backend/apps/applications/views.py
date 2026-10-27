@@ -1,6 +1,7 @@
 import logging
 
 from django.db.models import QuerySet
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import ListAPIView, RetrieveAPIView, RetrieveDestroyAPIView
 from rest_framework.permissions import AllowAny, IsAdminUser
@@ -20,6 +21,7 @@ from .serializers import (
     ApplicationItemSerializer,
     ApplicationListSerializer,
     CreateApplicationSerializer,
+    ManualCreateApplicationSerializer,
     RejectApplicationSerializer,
     UpdateApplicationItemSerializer,
 )
@@ -54,7 +56,7 @@ class AdminApplicationListView(ListAPIView):
     serializer_class = ApplicationListSerializer
 
     def get_queryset(self) -> QuerySet:
-        queryset = Application.objects.prefetch_related(
+        queryset = Application.objects.select_related("personal_data").prefetch_related(
             "items", "items__photos")
 
         # Фильтры
@@ -83,7 +85,9 @@ class AdminApplicationDetailView(RetrieveDestroyAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdminUser]
     serializer_class = ApplicationDetailSerializer
-    queryset = Application.objects.prefetch_related("items", "items__photos", "documents")
+    queryset = Application.objects.select_related(
+        "personal_data", "delivery_request"
+    ).prefetch_related("items", "items__photos", "documents")
 
 
 class AdminApproveApplicationView(APIView):
@@ -242,7 +246,207 @@ class AdminSendActView(APIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
+        document.sent_at = timezone.now()
+        document.save(update_fields=["sent_at"])
+
         return Response({
             "detail": "Акт сформирован, ссылка для подписания отправлена продавцу",
             "sign_token": str(document.sign_token),
+        })
+
+
+class AdminManualCreateApplicationView(APIView):
+    """POST /api/admin/applications/manual/ — ручное создание заявки"""
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+
+    def post(self, request: Request) -> Response:
+        serializer = ManualCreateApplicationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        application = ApplicationService.create_manual(serializer.validated_data)
+        return Response(
+            ApplicationDetailSerializer(application).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class AdminClientSearchView(ListAPIView):
+    """GET /api/admin/clients/search/?q=... — поиск клиента по имени, телефону
+    или ИНН для ручного создания заявки"""
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+
+    def get_serializer_class(self):
+        from apps.offers.serializers import PersonalDataSearchResultSerializer
+        return PersonalDataSearchResultSerializer
+
+    def get_queryset(self) -> QuerySet:
+        import re
+        from django.db.models import Q
+        from apps.offers.models import PersonalData
+
+        q = self.request.query_params.get("q", "").strip()
+        if not q:
+            return PersonalData.objects.none()
+
+        filters = Q(full_name__icontains=q) | Q(inn__icontains=q)
+        # Телефон ищем по частичному совпадению цифр — не требуем полный
+        # валидный номер, чтобы находить и по "999", и по кускам номера.
+        digits = re.sub(r"\D", "", q)
+        if digits:
+            filters |= Q(applications__phone__icontains=digits)
+
+        return PersonalData.objects.filter(filters).distinct().order_by("-created_at")[:50]
+
+
+class AdminSendAmendmentView(APIView):
+    """POST /api/admin/applications/:id/send-amendment/
+    body: {items: [{item_id, new_price}, ...]} — одно или несколько изделий"""
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+
+    def post(self, request: Request, pk: int) -> Response:
+        from decimal import Decimal, InvalidOperation
+        from django.conf import settings
+        from apps.contracts.services import DocumentService
+        from apps.notifications.services.sms import SmsService
+
+        application = Application.objects.get(pk=pk)
+
+        entries = request.data.get("items")
+        if not isinstance(entries, list) or not entries:
+            return Response({"detail": "Выберите хотя бы одно изделие"}, status=status.HTTP_400_BAD_REQUEST)
+
+        items = []
+        seen = set()
+        for entry in entries:
+            try:
+                item = application.items.get(pk=entry.get("item_id"))
+            except (ApplicationItem.DoesNotExist, ValueError, TypeError, AttributeError):
+                return Response({"detail": "Изделие не найдено"}, status=status.HTTP_400_BAD_REQUEST)
+            if item.id in seen:
+                return Response({"detail": "Изделие указано несколько раз"}, status=status.HTTP_400_BAD_REQUEST)
+            seen.add(item.id)
+            if item.offered_price is None:
+                return Response(
+                    {"detail": "У изделия ещё нет согласованной цены"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                new_price = Decimal(str(entry.get("new_price")))
+            except (InvalidOperation, TypeError):
+                return Response({"detail": "Укажите новую цену"}, status=status.HTTP_400_BAD_REQUEST)
+            if new_price <= 0:
+                return Response({"detail": "Цена должна быть больше нуля"}, status=status.HTTP_400_BAD_REQUEST)
+            items.append({"item_id": item.id, "new_price": new_price})
+
+        document = DocumentService.generate_amendment(application, items)
+
+        sign_url = f"{settings.FRONTEND_URL}/sign/{document.sign_token}"
+        try:
+            SmsService.send_sign_link(
+                phone=application.phone,
+                document_type_display=document.get_document_type_display(),
+                sign_url=sign_url,
+            )
+        except Exception:
+            logger.exception("Не удалось отправить SMS со ссылкой на подписание доп. соглашения")
+            return Response(
+                {"detail": "Документ сформирован, но SMS со ссылкой не отправлено. Попробуйте отправить повторно."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        document.sent_at = timezone.now()
+        document.save(update_fields=["sent_at"])
+
+        return Response({
+            "detail": "Доп. соглашение сформировано, ссылка для подписания отправлена продавцу",
+            "sign_token": str(document.sign_token),
+        })
+
+
+class AdminSendClosingReportView(APIView):
+    """POST /api/admin/applications/:id/closing-report/ (multipart, field "file")
+    Сохраняет файл отчёта и сразу отправляет клиенту ссылку на подпись.
+    Без файла — повторная отправка уже загруженного."""
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+
+    def post(self, request: Request, pk: int) -> Response:
+        from django.conf import settings
+        from apps.contracts.models import Document, DocumentType
+        from apps.notifications.services.sms import SmsService
+
+        application = Application.objects.get(pk=pk)
+        file = request.FILES.get("file")
+        document = Document.objects.filter(
+            application=application,
+            document_type=DocumentType.CLOSING_REPORT,
+        ).first()
+
+        if file:
+            if document is None:
+                document = Document(application=application, document_type=DocumentType.CLOSING_REPORT)
+            document.pdf_file.save(file.name, file, save=False)
+            document.is_signed = False
+            document.signed_at = None
+            document.signed_by_phone = ""
+            document.save()
+        elif not document or not document.pdf_file:
+            return Response({"detail": "Выберите файл отчёта"}, status=status.HTTP_400_BAD_REQUEST)
+
+        sign_url = f"{settings.FRONTEND_URL}/sign/{document.sign_token}"
+        try:
+            SmsService.send_sign_link(
+                phone=application.phone,
+                document_type_display=document.get_document_type_display(),
+                sign_url=sign_url,
+            )
+        except Exception:
+            logger.exception("Не удалось отправить SMS со ссылкой на подписание отчёта")
+            return Response(
+                {"detail": "SMS со ссылкой не отправлено. Попробуйте отправить повторно."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        document.sent_at = timezone.now()
+        document.save(update_fields=["sent_at"])
+
+        return Response({
+            "detail": "Ссылка для подписания отчёта отправлена продавцу",
+            "sign_token": str(document.sign_token),
+        })
+
+
+class AdminRequestDeliveryMethodView(APIView):
+    """POST /api/admin/applications/:id/request-delivery/"""
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUser]
+
+    def post(self, request: Request, pk: int) -> Response:
+        from django.conf import settings
+        from apps.delivery.services import DeliveryService
+        from apps.notifications.services.sms import SmsService
+
+        application = Application.objects.get(pk=pk)
+        delivery_request = DeliveryService.request_method(application)
+        delivery_url = f"{settings.FRONTEND_URL}/delivery/{delivery_request.token}"
+
+        try:
+            SmsService.send_delivery_request_link(phone=application.phone, delivery_url=delivery_url)
+        except Exception:
+            logger.exception("Не удалось отправить SMS со ссылкой на выбор способа передачи")
+            return Response(
+                {"detail": "SMS со ссылкой не отправлено. Попробуйте отправить повторно."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response({
+            "detail": "Ссылка на выбор способа передачи отправлена продавцу",
+            "token": str(delivery_request.token),
         })

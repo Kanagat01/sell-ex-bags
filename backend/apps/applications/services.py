@@ -11,6 +11,31 @@ class ApplicationService:
 
     @staticmethod
     @transaction.atomic
+    def create_manual(data: dict) -> Application:
+        """Ручное создание заявки администратором (клиент обратился вне
+        платформы). Без фото и без желаемой цены — только текстовое описание
+        сумки; цену админ укажет на шаге предложения вариантов сотрудничества.
+        Уведомление о «новой заявке» не шлётся — админ, создавший её, уже
+        знает."""
+        personal_data_id = data.get("personal_data_id")
+        application = Application.objects.create(
+            phone=data["phone"],
+            format="",
+            is_manual=True,
+            last_name="" if personal_data_id else data.get("last_name", ""),
+            first_name="" if personal_data_id else data.get("first_name", ""),
+            middle_name="" if personal_data_id else data.get("middle_name", ""),
+            personal_data_id=personal_data_id,
+        )
+        ApplicationItem.objects.create(
+            application=application,
+            manual_description=data["description"],
+            order=0,
+        )
+        return application
+
+    @staticmethod
+    @transaction.atomic
     def approve(application: Application, options: list) -> Offer:
         """options: [{"format": ..., "items": [{"id", "offered_price"}]}].
         Один вариант — формат и цены сразу пишутся в заявку (как раньше).

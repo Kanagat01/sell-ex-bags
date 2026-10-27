@@ -2,9 +2,12 @@ import api from "./client";
 import {
   Application,
   ApplicationItem,
+  ClientSearchResult,
   CreateApplicationPayload,
   ApproveApplicationPayload,
+  ManualCreateApplicationPayload,
   RejectApplicationPayload,
+  SendAmendmentPayload,
   UpdateItemPayload,
 } from "@/types";
 
@@ -115,6 +118,54 @@ export const updateApplicationItem = async (
   const { data } = await api.patch<ApplicationItem>(
     `/admin/applications/${applicationId}/items/${itemId}/`,
     payload,
+  );
+  return data;
+};
+
+export const createManualApplication = async (
+  payload: ManualCreateApplicationPayload,
+): Promise<Application> => {
+  const { data } = await api.post<Application>("/admin/applications/manual/", payload);
+  return data;
+};
+
+export const searchClients = async (q: string): Promise<ClientSearchResult[]> => {
+  const { data } = await api.get<ClientSearchResult[]>("/admin/clients/search/", {
+    params: { q },
+  });
+  return data;
+};
+
+export const sendAmendment = async (
+  id: string,
+  payload: SendAmendmentPayload,
+): Promise<{ detail: string; sign_token: string }> => {
+  const { data } = await api.post<{ detail: string; sign_token: string }>(
+    `/admin/applications/${id}/send-amendment/`,
+    payload,
+  );
+  return data;
+};
+
+export const sendClosingReport = async (
+  id: string,
+  file: File | null,
+): Promise<{ detail: string; sign_token: string }> => {
+  const formData = new FormData();
+  if (file) formData.append("file", file);
+  const { data } = await api.post<{ detail: string; sign_token: string }>(
+    `/admin/applications/${id}/closing-report/`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return data;
+};
+
+export const requestDeliveryMethod = async (
+  id: string,
+): Promise<{ detail: string; token: string }> => {
+  const { data } = await api.post<{ detail: string; token: string }>(
+    `/admin/applications/${id}/request-delivery/`,
   );
   return data;
 };

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, ChangeEvent } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useForm, SubmitHandler, Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -23,28 +23,16 @@ const schema = z.object({
   passport_issued_by: z.string().min(1, "Укажите кем выдан паспорт"),
   passport_issued_date: z.string().min(1, "Укажите дату выдачи"),
   registration_address: z.string().min(1, "Укажите адрес регистрации"),
-  inn: z
-    .string()
-    .regex(/^\d{12}$/, "ИНН — 12 цифр")
-    .optional()
-    .or(z.literal("")),
-  account_number: z
-    .string()
-    .regex(/^\d{20}$/, "Номер счёта — 20 цифр")
-    .optional()
-    .or(z.literal("")),
-  bank_name: z.string().optional(),
-  bik: z
-    .string()
-    .regex(/^\d{9}$/, "БИК — 9 цифр")
-    .optional()
-    .or(z.literal("")),
-  correspondent_account: z
-    .string()
-    .regex(/^\d{20}$/, "Корр. счёт — 20 цифр")
-    .optional()
-    .or(z.literal("")),
+  inn: z.string().regex(/^\d{12}$/, "ИНН — 12 цифр"),
+  account_number: z.string().regex(/^\d{20}$/, "Номер счёта — 20 цифр"),
+  bank_name: z.string().min(1, "Укажите банк"),
+  bik: z.string().regex(/^\d{9}$/, "БИК — 9 цифр"),
+  correspondent_account: z.string().regex(/^\d{20}$/, "Корр. счёт — 20 цифр"),
 })
+
+const digitsOnly = (maxLength: number) => (e: ChangeEvent<HTMLInputElement>) => {
+  e.target.value = e.target.value.replace(/\D/g, "").slice(0, maxLength)
+}
 
 type PersonalDataForm = z.infer<typeof schema>
 
@@ -119,17 +107,19 @@ export default function PersonalDataPage() {
               label="Серия"
               placeholder="1234"
               maxLength={4}
+              inputMode="numeric"
               error={errors.passport_series?.message}
               required
-              {...register("passport_series")}
+              {...register("passport_series", { onChange: digitsOnly(4) })}
             />
             <Input
               label="Номер"
               placeholder="567890"
               maxLength={6}
+              inputMode="numeric"
               error={errors.passport_number?.message}
               required
-              {...register("passport_number")}
+              {...register("passport_number", { onChange: digitsOnly(6) })}
             />
           </div>
 
@@ -166,9 +156,10 @@ export default function PersonalDataPage() {
             label="ИНН"
             placeholder="123456789012"
             maxLength={12}
-            hint="Необязательно"
+            inputMode="numeric"
             error={errors.inn?.message}
-            {...register("inn")}
+            required
+            {...register("inn", { onChange: digitsOnly(12) })}
           />
         </div>
 
@@ -180,14 +171,17 @@ export default function PersonalDataPage() {
             label="Номер счёта"
             placeholder="40817810000000000000"
             maxLength={20}
+            inputMode="numeric"
             error={errors.account_number?.message}
-            {...register("account_number")}
+            required
+            {...register("account_number", { onChange: digitsOnly(20) })}
           />
 
           <Input
             label="Полное наименование банка"
             placeholder="ПАО Сбербанк"
             error={errors.bank_name?.message}
+            required
             {...register("bank_name")}
           />
 
@@ -196,16 +190,20 @@ export default function PersonalDataPage() {
               label="БИК"
               placeholder="044525225"
               maxLength={9}
+              inputMode="numeric"
               error={errors.bik?.message}
-              {...register("bik")}
+              required
+              {...register("bik", { onChange: digitsOnly(9) })}
             />
 
             <Input
               label="Корреспондентский счёт"
               placeholder="30101810400000000225"
               maxLength={20}
+              inputMode="numeric"
               error={errors.correspondent_account?.message}
-              {...register("correspondent_account")}
+              required
+              {...register("correspondent_account", { onChange: digitsOnly(20) })}
             />
           </div>
         </div>

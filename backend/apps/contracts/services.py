@@ -5,13 +5,14 @@ from decimal import Decimal, ROUND_HALF_UP
 from num2words import num2words
 from datetime import timedelta
 
+from django.db import transaction
 from django.utils import timezone
 from django.conf import settings
 from django.template.loader import render_to_string
 
-from apps.applications.models import Application, ApplicationFormat, ApplicationStatus
+from apps.applications.models import Application, ApplicationFormat, ApplicationItem, ApplicationStatus
 from apps.notifications.tasks import send_document_signed_notification
-from .models import Document, DocumentType, SmsCode
+from .models import AmendmentDetail, Document, DocumentType, SmsCode
 
 
 # Папка со статикой шаблонов (логотип, шрифт, печать, подпись).
@@ -39,6 +40,8 @@ ACT_TEMPLATE_MAP = {
         DocumentType.RETURN_ACT: "contracts/acts/commission_return.html",
     },
 }
+
+AMENDMENT_TEMPLATE = "contracts/amendment.html"
 
 
 def amount_to_words(value: Decimal) -> str:
@@ -186,6 +189,43 @@ class DocumentService:
         return document
 
     @staticmethod
+    @transaction.atomic
+    def generate_amendment(application: Application, items: list[dict]) -> Document:
+        """Доп. соглашение об изменении цены по одному или нескольким
+        изделиям. items: [{"item_id": int, "new_price": Decimal}, ...].
+        Новые цены фиксируются в AmendmentDetail, но item.offered_price
+        меняется только после того, как клиент подпишет документ по SMS
+        (см. confirm_signature)."""
+        from weasyprint import HTML
+
+        document, _ = Document.objects.get_or_create(
+            application=application,
+            document_type=DocumentType.AMENDMENT,
+        )
+        if not document.document_number:
+            document.document_number = DocumentService._generate_document_number(document)
+            document.save(update_fields=["document_number"])
+
+        # Перезаписываем целиком — повторная отправка заменяет предыдущий
+        # набор изделий/цен этого доп. соглашения.
+        document.amendment_details.all().delete()
+        details = []
+        for entry in items:
+            item = application.items.get(pk=entry["item_id"])
+            details.append(AmendmentDetail(
+                document=document, item=item,
+                old_price=item.offered_price, new_price=entry["new_price"],
+            ))
+        AmendmentDetail.objects.bulk_create(details)
+
+        context = DocumentService._build_context(application, document)
+        context["amendment_details"] = document.amendment_details.select_related("item").order_by("item__order")
+        html_string = render_to_string(AMENDMENT_TEMPLATE, context)
+        pdf_bytes = HTML(string=html_string, base_url=ASSETS_BASE_URL).write_pdf()
+        document.pdf_file.save(f"amendment_{application.pk}.pdf", BytesIO(pdf_bytes), save=True)
+        return document
+
+    @staticmethod
     def request_sms_code(document: Document) -> SmsCode:
         ttl = settings.SMS_CODE_TTL_MINUTES
         max_sends = settings.SMS_CODE_MAX_SENDS_PER_DAY
@@ -251,6 +291,14 @@ class DocumentService:
 
         if document.document_type == DocumentType.CONTRACT:
             DocumentService.generate_contract(document.application)
+        elif document.document_type == DocumentType.AMENDMENT:
+            items = []
+            for detail in document.amendment_details.select_related("item"):
+                detail.item.offered_price = detail.new_price
+                items.append(detail.item)
+            ApplicationItem.objects.bulk_update(items, ["offered_price"])
+        elif document.document_type == DocumentType.CLOSING_REPORT:
+            pass  # загруженный администратором файл, перегенерировать нечего
         else:
             DocumentService.generate_act(document.application, document.document_type)
 

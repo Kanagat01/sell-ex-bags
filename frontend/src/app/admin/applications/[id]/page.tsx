@@ -10,11 +10,14 @@ import {
   approveApplication,
   rejectApplication,
   sendAct,
+  sendAmendment,
+  sendClosingReport,
+  requestDeliveryMethod,
   updateApplicationItem,
   deleteApplication,
 } from "@/api"
 import { Application, ApplicationCondition, ApplicationFormat, ApplicationItem, ApplicationStatus } from "@/types"
-import { Button, Input, Modal, Select, StatusBadge, Textarea } from "@/components/ui"
+import { Button, FileInput, Input, Modal, Select, StatusBadge, Textarea } from "@/components/ui"
 import { PhotoGallery, PageLoader, ErrorMessage } from "@/components/shared"
 import {
   FORMAT_LABELS,
@@ -68,6 +71,19 @@ export default function ApplicationDetailPage() {
   const [editFields, setEditFields] = useState<Record<string, string>>({})
   const [isEditLoading, setIsEditLoading] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
+
+  // Доп. соглашение об изменении цены
+  const [isAmendmentOpen, setIsAmendmentOpen] = useState(false)
+  // Выбранные изделия и новые цены: itemId -> цена
+  const [amendmentPrices, setAmendmentPrices] = useState<Record<string, string>>({})
+  const [isSendingAmendment, setIsSendingAmendment] = useState(false)
+
+  // Закрывающий отчёт
+  const [reportFile, setReportFile] = useState<File | null>(null)
+  const [isSendingReport, setIsSendingReport] = useState(false)
+
+  // Запрос способа передачи
+  const [isRequestingDelivery, setIsRequestingDelivery] = useState(false)
 
   const rejectForm = useForm<RejectForm>({
     resolver: zodResolver(rejectSchema) as Resolver<RejectForm>,
@@ -140,6 +156,59 @@ export default function ApplicationDetailPage() {
     }
   }
 
+  const handleSendAmendment = async () => {
+    setActionError(null)
+    const entries = Object.entries(amendmentPrices)
+    if (entries.length === 0) {
+      setActionError("Выберите хотя бы одно изделие")
+      return
+    }
+    if (entries.some(([, price]) => !(Number(price) > 0))) {
+      setActionError("Укажите новую цену для каждого выбранного изделия")
+      return
+    }
+    setIsSendingAmendment(true)
+    try {
+      await sendAmendment(id, {
+        items: entries.map(([item_id, price]) => ({ item_id, new_price: Number(price) })),
+      })
+      setIsAmendmentOpen(false)
+      setAmendmentPrices({})
+      await fetchApplication()
+    } catch (e: unknown) {
+      setActionError(getApiError(e, "Ошибка при отправке доп. соглашения"))
+    } finally {
+      setIsSendingAmendment(false)
+    }
+  }
+
+  const handleSendReport = async () => {
+    setActionError(null)
+    setIsSendingReport(true)
+    try {
+      await sendClosingReport(id, reportFile)
+      setReportFile(null)
+      await fetchApplication()
+    } catch (e: unknown) {
+      setActionError(getApiError(e, "Ошибка при отправке отчёта"))
+    } finally {
+      setIsSendingReport(false)
+    }
+  }
+
+  const handleRequestDelivery = async () => {
+    setActionError(null)
+    setIsRequestingDelivery(true)
+    try {
+      await requestDeliveryMethod(id)
+      await fetchApplication()
+    } catch (e: unknown) {
+      setActionError(getApiError(e, "Ошибка при запросе способа передачи"))
+    } finally {
+      setIsRequestingDelivery(false)
+    }
+  }
+
   const handleDelete = async () => {
     setActionError(null)
     setIsDeleting(true)
@@ -197,9 +266,14 @@ export default function ApplicationDetailPage() {
 
   const canApproveOrReject = application.status === ApplicationStatus.NEW
   const canSendAcceptanceAct = application.status === ApplicationStatus.CONTRACT_SIGNED
+  const canManageDocuments =
+    application.status === ApplicationStatus.ITEM_TRANSFERRED ||
+    application.status === ApplicationStatus.RETURN_PROCESSED
   const canSendReturnAct =
-    application.status === ApplicationStatus.ITEM_TRANSFERRED &&
+    canManageDocuments &&
+    !!application.format &&
     AVAILABLE_ACTS[application.format].some((a) => a.type === "return")
+  const canRequestDelivery = application.status === ApplicationStatus.CONTRACT_SIGNED
 
   return (
     <div className="flex flex-col gap-8">
@@ -211,8 +285,8 @@ export default function ApplicationDetailPage() {
               "Без изделий"
             ) : (
               <>
-                {application.items[0].brand}
-                {application.items[0].model ? ` ${application.items[0].model}` : ""}
+                {application.items[0].brand || application.items[0].manual_description || "Без описания"}
+                {application.items[0].brand && application.items[0].model ? ` ${application.items[0].model}` : ""}
                 {application.items.length > 1 && (
                   <span className="ml-2 text-base font-normal text-neutral-500">
                     +{application.items.length - 1} изд.
@@ -222,8 +296,15 @@ export default function ApplicationDetailPage() {
             )}
           </h1>
           <p className="text-sm text-neutral-500">
-            {FORMAT_LABELS[application.format]} · {formatDateTime(application.created_at)}
+            {application.format ? FORMAT_LABELS[application.format] : "Формат не выбран"} · {formatDateTime(application.created_at)}
           </p>
+          {(application.last_name || application.first_name || application.middle_name || application.personal_data) && (
+            <p className="text-sm text-neutral-500">
+              Клиент: {application.personal_data
+                ? application.personal_data.full_name
+                : [application.last_name, application.first_name, application.middle_name].filter(Boolean).join(" ")}
+            </p>
+          )}
         </div>
         <StatusBadge status={application.status} />
       </div>
@@ -235,7 +316,7 @@ export default function ApplicationDetailPage() {
             <div key={item.id} className="flex flex-col gap-4 border border-neutral-200 p-5">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="font-medium">
-                  Изделие {idx + 1}: {item.brand}{item.model ? ` ${item.model}` : ""}
+                  Изделие {idx + 1}{item.brand ? `: ${item.brand}${item.model ? ` ${item.model}` : ""}` : ""}
                 </h2>
                 {canEdit && (
                   <Button variant="secondary" onClick={() => openEdit(item)}>
@@ -244,38 +325,59 @@ export default function ApplicationDetailPage() {
                 )}
               </div>
               {item.photos.length > 0 && <PhotoGallery photos={item.photos} />}
-              <div className="grid grid-cols-2 gap-y-3 text-sm">
-                <span className="text-neutral-500">Бренд</span>
-                <span>{item.brand}</span>
-                {item.model && (
-                  <>
-                    <span className="text-neutral-500">Модель</span>
-                    <span>{item.model}</span>
-                  </>
-                )}
-                {item.size && (
-                  <>
-                    <span className="text-neutral-500">Размер</span>
-                    <span>{item.size}</span>
-                  </>
-                )}
-                <span className="text-neutral-500">Состояние</span>
-                <span>{CONDITION_LABELS[item.condition]}</span>
-                {item.defects_description && (
-                  <>
-                    <span className="text-neutral-500">Изъяны</span>
-                    <span>{item.defects_description}</span>
-                  </>
-                )}
-                <span className="text-neutral-500">Желаемая цена</span>
-                <span>{formatPrice(item.desired_price)}</span>
-                {item.offered_price && (
-                  <>
-                    <span className="text-neutral-500">Предложенная цена</span>
-                    <span className="font-medium">{formatPrice(item.offered_price)}</span>
-                  </>
-                )}
-              </div>
+              {!item.brand && item.manual_description ? (
+                <div className="grid grid-cols-2 gap-y-3 text-sm">
+                  <span className="text-neutral-500">Описание</span>
+                  <span>{item.manual_description}</span>
+                  {item.offered_price && (
+                    <>
+                      <span className="text-neutral-500">Предложенная цена</span>
+                      <span className="font-medium">{formatPrice(item.offered_price)}</span>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-y-3 text-sm">
+                  <span className="text-neutral-500">Бренд</span>
+                  <span>{item.brand}</span>
+                  {item.model && (
+                    <>
+                      <span className="text-neutral-500">Модель</span>
+                      <span>{item.model}</span>
+                    </>
+                  )}
+                  {item.size && (
+                    <>
+                      <span className="text-neutral-500">Размер</span>
+                      <span>{item.size}</span>
+                    </>
+                  )}
+                  {item.condition && (
+                    <>
+                      <span className="text-neutral-500">Состояние</span>
+                      <span>{CONDITION_LABELS[item.condition]}</span>
+                    </>
+                  )}
+                  {item.defects_description && (
+                    <>
+                      <span className="text-neutral-500">Изъяны</span>
+                      <span>{item.defects_description}</span>
+                    </>
+                  )}
+                  {item.desired_price && (
+                    <>
+                      <span className="text-neutral-500">Желаемая цена</span>
+                      <span>{formatPrice(item.desired_price)}</span>
+                    </>
+                  )}
+                  {item.offered_price && (
+                    <>
+                      <span className="text-neutral-500">Предложенная цена</span>
+                      <span className="font-medium">{formatPrice(item.offered_price)}</span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -349,7 +451,7 @@ export default function ApplicationDetailPage() {
           <div className="flex flex-col gap-3">
             {canApproveOrReject && (
               <>
-                <Button onClick={() => { setApproveFormats([application.format]); setIsApproveOpen(true) }} fullWidth>
+                <Button onClick={() => { setApproveFormats(application.format ? [application.format] : []); setIsApproveOpen(true) }} fullWidth>
                   Одобрить заявку
                 </Button>
                 <Button
@@ -398,28 +500,96 @@ export default function ApplicationDetailPage() {
               )
             )}
 
-            {canSendReturnAct && (
-              application.act_sent ? (
-                <div className="flex flex-col gap-2">
-                  <p className="text-sm text-neutral-600">Ссылка на подписание Акта о возврате отправлена</p>
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleSendAct("return")}
-                    isLoading={isSendingAct}
-                    fullWidth
-                  >
-                    Отправить повторно
-                  </Button>
+            {canRequestDelivery && (
+              application.delivery_request?.is_confirmed ? (
+                <div className="flex flex-col gap-1 border border-neutral-200 p-3 text-sm">
+                  <span className="text-neutral-500">Способ передачи выбран</span>
+                  <span className="font-medium">{application.delivery_request.method_label}</span>
+                  {application.delivery_request.address && (
+                    <span className="text-neutral-600">{application.delivery_request.address}</span>
+                  )}
                 </div>
               ) : (
-                <Button
-                  onClick={() => handleSendAct("return")}
-                  isLoading={isSendingAct}
-                  fullWidth
-                >
-                  Выслать акт о возврате
-                </Button>
+                <div className="flex flex-col gap-2">
+                  {application.delivery_request && (
+                    <p className="text-sm text-neutral-600">Ссылка на выбор способа передачи отправлена</p>
+                  )}
+                  <Button
+                    variant={application.delivery_request ? "secondary" : "primary"}
+                    onClick={handleRequestDelivery}
+                    isLoading={isRequestingDelivery}
+                    fullWidth
+                  >
+                    {application.delivery_request ? "Отправить повторно" : "Запросить способ передачи"}
+                  </Button>
+                </div>
               )
+            )}
+
+            {canManageDocuments && (
+              <>
+                {canSendReturnAct && (
+                  application.act_sent ? (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-sm text-neutral-600">Ссылка на подписание Акта о возврате отправлена</p>
+                      <Button
+                        variant="secondary"
+                        onClick={() => handleSendAct("return")}
+                        isLoading={isSendingAct}
+                        fullWidth
+                      >
+                        Отправить повторно
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => handleSendAct("return")}
+                      isLoading={isSendingAct}
+                      fullWidth
+                    >
+                      Выслать акт о возврате
+                    </Button>
+                  )
+                )}
+
+                {application.amendment_sent ? (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm text-neutral-600">Доп. соглашение отправлено на подписание</p>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setIsAmendmentOpen(true)}
+                      fullWidth
+                    >
+                      Отправить ещё раз
+                    </Button>
+                  </div>
+                ) : (
+                  <Button onClick={() => setIsAmendmentOpen(true)} fullWidth>
+                    Отправить доп. соглашение
+                  </Button>
+                )}
+
+                <div className="flex flex-col gap-2 border border-neutral-200 p-3">
+                  <span className="text-sm font-medium">Закрывающий отчёт</span>
+                  {application.closing_report?.sent ? (
+                    <span className="text-sm text-neutral-600">
+                      {application.closing_report.is_signed ? "Отчёт подписан" : "Ссылка на подписание отправлена"}
+                    </span>
+                  ) : (
+                    <>
+                      <FileInput fileName={reportFile?.name} onChange={setReportFile} />
+                      <Button
+                        onClick={handleSendReport}
+                        isLoading={isSendingReport}
+                        disabled={!reportFile}
+                        fullWidth
+                      >
+                        Отправить на подпись
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </>
             )}
 
             <div className="border-t border-neutral-200 pt-3">
@@ -590,7 +760,7 @@ export default function ApplicationDetailPage() {
             onChange={(e) => setEditFields((p) => ({ ...p, defects_description: e.target.value }))}
             rows={3}
           />
-{editError && <p className="text-sm text-red-500">{editError}</p>}
+          {editError && <p className="text-sm text-red-500">{editError}</p>}
           <div className="flex gap-3">
             <Button variant="secondary" onClick={() => setEditingItem(null)} fullWidth>
               Отмена
@@ -638,6 +808,61 @@ export default function ApplicationDetailPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Модалка доп. соглашения об изменении цены */}
+      <Modal
+        isOpen={isAmendmentOpen}
+        onClose={() => setIsAmendmentOpen(false)}
+        title="Отправить доп. соглашение"
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-neutral-500">Выберите изделия, у которых меняется цена</p>
+          {application.items.filter((item) => item.offered_price).map((item) => {
+            const isSelected = item.id in amendmentPrices
+            return (
+              <div key={item.id} className="flex flex-col gap-2 border-t border-neutral-100 pt-3">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-black"
+                    checked={isSelected}
+                    onChange={(e) =>
+                      setAmendmentPrices((prev) => {
+                        const next = { ...prev }
+                        if (e.target.checked) next[item.id] = ""
+                        else delete next[item.id]
+                        return next
+                      })
+                    }
+                  />
+                  <span>
+                    {item.brand ? `${item.brand}${item.model ? ` ${item.model}` : ""}` : item.manual_description}
+                    <span className="text-neutral-500"> — сейчас {formatPrice(item.offered_price ?? 0)}</span>
+                  </span>
+                </label>
+                {isSelected && (
+                  <Input
+                    label="Новая цена (₽)"
+                    type="number"
+                    value={amendmentPrices[item.id]}
+                    onChange={(e) => setAmendmentPrices((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                    required
+                  />
+                )}
+              </div>
+            )
+          })}
+          {actionError && <ErrorMessage message={actionError} />}
+          <div className="flex gap-3">
+            <Button type="button" variant="secondary" onClick={() => setIsAmendmentOpen(false)} fullWidth>
+              Отмена
+            </Button>
+            <Button onClick={handleSendAmendment} isLoading={isSendingAmendment} fullWidth>
+              Отправить
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   )

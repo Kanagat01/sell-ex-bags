@@ -15,6 +15,7 @@ urlpatterns = [
     path("api/", include("apps.applications.urls")),
     path("api/", include("apps.offers.urls")),
     path("api/", include("apps.contracts.urls")),
+    path("api/", include("apps.delivery.urls")),
 ]
 
 # Медиафайлы в локальной среде

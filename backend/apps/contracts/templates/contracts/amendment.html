@@ -1,0 +1,104 @@
+{% load custom_filters %}
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Дополнительное соглашение</title>
+
+    <style>
+      {% include "contracts/_base_styles.html" %}
+
+      /* === LOCAL: доп. соглашение об изменении цены (временный шаблон) === */
+      @page {
+        @bottom-left {
+          content: "";
+          font-size: 9pt;
+          margin-top: -25px;
+          margin-left: 7px;
+        }
+      }
+      body {
+        font-size: 9pt;
+      }
+      .indent {
+        margin-left: 12.5mm;
+      }
+      .sign-img {
+        left: -1mm;
+      }
+      .stamp-img {
+        left: -20mm;
+      }
+      .appendix-title {
+        text-align: end;
+        font-weight: bold;
+      }
+      .signatures {
+        padding-right: 5mm;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="appendix">
+      <div class="doc-logo"><img src="logo.png" /></div>
+      <p class="text-center mt-3" style="font-weight: 600">
+        ДОПОЛНИТЕЛЬНОЕ СОГЛАШЕНИЕ № {{ document_number }}
+        от {{ document_date|date:"d.m.Y" }}
+      </p>
+      <p class="text-center mt-3">
+        к договору № {{ contract_number }} от {{ contract_date|date:"d.m.Y" }} г.
+      </p>
+      <p class="mt-3">
+        <span class="indent">Общество</span> с ограниченной ответственностью
+        «Эксбэгс», в лице директора Иванец Арины Романовны, действующего на
+        основании Устава, и {{ seller_fullname }}, с другой стороны, заключили
+        настоящее дополнительное соглашение об изменении стоимости следующих
+        изделий:
+      </p>
+      {% for detail in amendment_details %}
+      <p class="mt-3">
+        <span class="indent">-</span>
+        «{% if detail.item.brand %}{{ detail.item.brand }} {{ detail.item.model }}{% else %}{{ detail.item.manual_description }}{% endif %}»:
+        ранее согласованная стоимость {{ detail.old_price }} ₽,
+        новая согласованная стоимость {{ detail.new_price }} ₽{% if forloop.last %}.{% else %};{% endif %}
+      </p>
+      {% endfor %}
+      <p class="mt-3 indent">
+        Настоящее соглашение является неотъемлемой частью договора и вступает
+        в силу с момента его подписания Сторонами.
+      </p>
+      <div class="mt-6"></div>
+      <div class="signatures">
+        <div>
+          <p class="mt-3">От Общества</p>
+          <p class="mt-3">Директор ООО «ЭКСБЭГС»</p>
+          <div class="signature-line">
+            ____________________/Иванец А.Р.
+
+            <img
+              class="sign-img"
+              src="sign.png"
+            />
+            <img
+              class="stamp-img"
+              src="stamp.png"
+            />
+          </div>
+        </div>
+        <div>
+          <p class="mt-3">От второй стороны</p>
+          <div class="mt-6"></div>
+          <span class="mt-3"
+            >{% if signed_at %}
+            <span style="text-decoration: underline"
+              >Подписан [{{ signed_at|date:"d.m.Y H:i" }}] посредством
+              СМС-подтверждения с номера [{{ seller_phone }}]</span
+            >{% else %}___________________
+            {%endif%}/{{ seller_fullname|short_fio }}</span
+          >
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

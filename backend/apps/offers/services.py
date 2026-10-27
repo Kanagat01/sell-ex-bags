@@ -1,6 +1,7 @@
 from django.db import transaction
 from .models import Offer, PersonalData
 from apps.applications.models import Application, ApplicationItem, ApplicationStatus
+from apps.contracts.models import Document
 from apps.contracts.services import DocumentService
 
 
@@ -25,9 +26,14 @@ class OfferService:
 
     @staticmethod
     @transaction.atomic
-    def accept(offer: Offer, chosen_format: str | None = None) -> None:
+    def accept(offer: Offer, chosen_format: str | None = None) -> Document | None:
         """Продавец принимает предложение. Если вариантов несколько — выбирает
-        один формат; его формат и цены записываются в заявку."""
+        один формат; его формат и цены записываются в заявку.
+
+        Если за заявкой уже закреплён известный клиент (persoanl_data выбран
+        админом при ручном создании или подобран по предыдущей заявке), шаг
+        заполнения персональных данных пропускается — договор формируется
+        сразу, и клиент уходит прямиком на подпись по SMS."""
         options = dict(offer.get_options())
         if not options:
             raise ValueError("В предложении нет изделий")
@@ -51,6 +57,10 @@ class OfferService:
         offer.is_used = True
         offer.save(update_fields=["is_used"])
 
+        if application.has_complete_personal_data:
+            return DocumentService.generate_contract(application)
+        return None
+
     @staticmethod
     @transaction.atomic
     def decline(offer: Offer) -> None:
@@ -65,12 +75,11 @@ class OfferService:
         """Для префилла формы: свои уже сохранённые данные по этой заявке,
         иначе — последние сохранённые под тем же телефоном с другой заявки
         (повторный продавец)."""
-        own = PersonalData.objects.filter(application=application).first()
-        if own:
-            return own
+        if application.personal_data_id:
+            return application.personal_data
         return (
             PersonalData.objects
-            .filter(application__phone=application.phone)
+            .filter(applications__phone=application.phone)
             .order_by("-created_at")
             .first()
         )
@@ -78,10 +87,25 @@ class OfferService:
     @staticmethod
     @transaction.atomic
     def save_personal_data(application: Application, data: dict) -> PersonalData:
-        """Сохранить персональные данные и создать договор"""
-        personal_data, _ = PersonalData.objects.update_or_create(
-            application=application,
-            defaults=data,
-        )
+        """Сохранить персональные данные и создать договор.
+
+        Клиент ищется среди PersonalData, уже привязанных к заявкам с тем же
+        телефоном: если совпадает ИНН (уникальный госномер, обязателен для
+        заполнения) — это тот же человек, его запись обновляется; иначе
+        (телефон переиспользован другим человеком) создаётся новая отдельная
+        запись."""
+        candidates = PersonalData.objects.filter(applications__phone=application.phone).distinct()
+        match = candidates.filter(inn=data["inn"]).order_by("-created_at").first()
+
+        if match:
+            for field, value in data.items():
+                setattr(match, field, value)
+            match.save()
+            personal_data = match
+        else:
+            personal_data = PersonalData.objects.create(**data)
+
+        application.personal_data = personal_data
+        application.save(update_fields=["personal_data", "updated_at"])
         DocumentService.generate_contract(application)
         return personal_data

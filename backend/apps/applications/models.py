@@ -27,6 +27,8 @@ class Application(models.Model):
     format = models.CharField(
         max_length=20,
         choices=ApplicationFormat.choices,
+        blank=True,
+        default="",
     )
     status = models.CharField(
         max_length=20,
@@ -38,6 +40,18 @@ class Application(models.Model):
     rejection_reason = models.TextField(blank=True)
     trade_in_item_url = models.URLField(max_length=500, blank=True)
     trade_in_certificate_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    personal_data = models.ForeignKey(
+        "offers.PersonalData",
+        on_delete=models.SET_NULL,
+        related_name="applications",
+        null=True,
+        blank=True,
+    )
+    last_name = models.CharField(max_length=150, blank=True)
+    first_name = models.CharField(max_length=150, blank=True)
+    middle_name = models.CharField(max_length=150, blank=True)
+    is_manual = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -51,6 +65,10 @@ class Application(models.Model):
     def __str__(self) -> str:
         return f"{self.get_format_display()} — {self.phone} ({self.get_status_display()})".strip()
 
+    @property
+    def has_complete_personal_data(self) -> bool:
+        return self.personal_data_id is not None
+
 
 class ApplicationItem(models.Model):
     application = models.ForeignKey(
@@ -58,15 +76,17 @@ class ApplicationItem(models.Model):
         on_delete=models.CASCADE,
         related_name="items",
     )
-    brand = models.CharField(max_length=100)
+    brand = models.CharField(max_length=100, blank=True)
     model = models.CharField(max_length=200, blank=True)
     size = models.CharField(max_length=50, blank=True)
     condition = models.CharField(
         max_length=20,
         choices=ApplicationCondition.choices,
+        blank=True,
     )
     defects_description = models.TextField(blank=True)
-    desired_price = models.DecimalField(max_digits=12, decimal_places=2)
+    manual_description = models.TextField(blank=True, default="")
+    desired_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     offered_price = models.DecimalField(
         max_digits=12,
         decimal_places=2,

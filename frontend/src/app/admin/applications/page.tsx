@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { getApplications } from "@/api"
-import { Application, ApplicationStatus, ApplicationFormat } from "@/types"
+import { useRouter } from "next/navigation"
+import { getApplications, createManualApplication, searchClients } from "@/api"
+import { Application, ApplicationStatus, ApplicationFormat, ClientSearchResult } from "@/types"
 import { useApplicationStore } from "@/store"
-import { Input, Select, StatusBadge } from "@/components/ui"
+import { Button, Input, Modal, PhoneInput, Select, StatusBadge, Textarea } from "@/components/ui"
 import { PageLoader, ErrorMessage } from "@/components/shared"
-import { FORMAT_LABELS, formatPrice, formatDateTime } from "@/utils"
+import { FORMAT_LABELS, formatPrice, formatDateTime, getApiError } from "@/utils"
 
 const statusOptions = [
   { value: "", label: "Все статусы" },
@@ -28,11 +29,91 @@ const formatOptions = [
 ]
 
 export default function AdminApplicationsPage() {
+  const router = useRouter()
   const { filters, setFilter, resetFilters, setApplications, applications } =
     useApplicationStore()
 
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Ручное создание заявки
+  const [isManualOpen, setIsManualOpen] = useState(false)
+  const [clientMode, setClientMode] = useState<"new" | "existing">("new")
+  const [manualPhone, setManualPhone] = useState("")
+  const [manualDescription, setManualDescription] = useState("")
+  const [manualLastName, setManualLastName] = useState("")
+  const [manualFirstName, setManualFirstName] = useState("")
+  const [manualMiddleName, setManualMiddleName] = useState("")
+  const [clientQuery, setClientQuery] = useState("")
+  const [clientResults, setClientResults] = useState<ClientSearchResult[]>([])
+  const [isSearchingClients, setIsSearchingClients] = useState(false)
+  const [hasSearchedClients, setHasSearchedClients] = useState(false)
+  const [selectedClient, setSelectedClient] = useState<ClientSearchResult | null>(null)
+  const [isManualSubmitting, setIsManualSubmitting] = useState(false)
+  const [manualError, setManualError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (clientMode !== "existing" || selectedClient || clientQuery.trim().length < 2) {
+      setClientResults([])
+      setHasSearchedClients(false)
+      return
+    }
+    setIsSearchingClients(true)
+    const timeout = setTimeout(() => {
+      searchClients(clientQuery.trim())
+        .then(setClientResults)
+        .catch(() => setClientResults([]))
+        .finally(() => {
+          setIsSearchingClients(false)
+          setHasSearchedClients(true)
+        })
+    }, 300)
+    return () => clearTimeout(timeout)
+  }, [clientQuery, clientMode, selectedClient])
+
+  const resetManualForm = () => {
+    setClientMode("new")
+    setManualPhone("")
+    setManualDescription("")
+    setManualLastName("")
+    setManualFirstName("")
+    setManualMiddleName("")
+    setClientQuery("")
+    setClientResults([])
+    setIsSearchingClients(false)
+    setHasSearchedClients(false)
+    setSelectedClient(null)
+    setManualError(null)
+  }
+
+  const handleManualSubmit = async () => {
+    setManualError(null)
+    if (!manualPhone.trim()) {
+      setManualError("Укажите номер телефона")
+      return
+    }
+    if (!manualDescription.trim()) {
+      setManualError("Укажите описание сумки")
+      return
+    }
+    setIsManualSubmitting(true)
+    try {
+      const application = await createManualApplication({
+        phone: manualPhone,
+        description: manualDescription,
+        ...(selectedClient
+          ? { personal_data_id: selectedClient.id }
+          : { last_name: manualLastName, first_name: manualFirstName, middle_name: manualMiddleName }),
+      })
+      setIsManualOpen(false)
+      resetManualForm()
+      router.push(`/admin/applications/${application.id}`)
+    } catch (e: unknown) {
+      setManualError(getApiError(e, "Ошибка при создании заявки"))
+    } finally {
+      setIsManualSubmitting(false)
+    }
+  }
 
   const fetchApplications = async () => {
     setIsLoading(true)
@@ -60,7 +141,10 @@ export default function AdminApplicationsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-medium">Заявки</h1>
-        <span className="text-sm text-neutral-500">{applications.length} заявок</span>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-neutral-500">{applications.length} заявок</span>
+          <Button onClick={() => setIsManualOpen(true)}>Добавить заявку</Button>
+        </div>
       </div>
 
       {/* Фильтры */}
@@ -140,8 +224,8 @@ export default function AdminApplicationsPage() {
                 "Без изделий"
               ) : (
                 <>
-                  {app.items[0].brand}
-                  {app.items[0].model ? ` ${app.items[0].model}` : ""}
+                  {app.items[0].brand || app.items[0].manual_description || "Без описания"}
+                  {app.items[0].brand && app.items[0].model ? ` ${app.items[0].model}` : ""}
                   {app.items.length > 1 && (
                     <span className="ml-1 font-normal text-neutral-400">
                       +{app.items.length - 1}
@@ -153,7 +237,7 @@ export default function AdminApplicationsPage() {
           </td>
 
           <td className="py-3 border-t-[0.8px] border-b-[0.8px] border-black">
-            {FORMAT_LABELS[app.format]}
+            {app.format ? FORMAT_LABELS[app.format] : "Формат не выбран"}
           </td>
 
           <td className="py-3 border-t-[0.8px] border-b-[0.8px] border-black">
@@ -185,6 +269,116 @@ export default function AdminApplicationsPage() {
   </table>
 </div>
       )}
+
+      <Modal
+        isOpen={isManualOpen}
+        onClose={() => { setIsManualOpen(false); resetManualForm() }}
+        title="Добавить заявку"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-2 border-b border-neutral-200">
+            {(["new", "existing"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => { setClientMode(mode); setSelectedClient(null) }}
+                className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  clientMode === mode ? "border-black text-black" : "border-transparent text-neutral-400"
+                }`}
+              >
+                {mode === "new" ? "Новый клиент" : "Найти клиента"}
+              </button>
+            ))}
+          </div>
+
+          {clientMode === "new" ? (
+            <div className="flex flex-col gap-3">
+              <Input label="Фамилия" value={manualLastName} onChange={(e) => setManualLastName(e.target.value)} />
+              <Input label="Имя" value={manualFirstName} onChange={(e) => setManualFirstName(e.target.value)} />
+              <Input label="Отчество" value={manualMiddleName} onChange={(e) => setManualMiddleName(e.target.value)} />
+            </div>
+          ) : selectedClient ? (
+            <div className="flex items-center justify-between border border-neutral-200 px-3 py-2 text-sm">
+              <span>{selectedClient.full_name}{selectedClient.inn ? ` · ИНН ${selectedClient.inn}` : ""}</span>
+              <button
+                type="button"
+                onClick={() => setSelectedClient(null)}
+                className="text-neutral-400 hover:text-black"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <Input
+                label="Поиск по имени, телефону или ИНН"
+                placeholder="Минимум 2 символа"
+                value={clientQuery}
+                onChange={(e) => setClientQuery(e.target.value)}
+              />
+              {clientQuery.trim().length < 2 ? (
+                <p className="text-sm text-neutral-400">Введите хотя бы 2 символа, чтобы начать поиск</p>
+              ) : isSearchingClients ? (
+                <p className="text-sm text-neutral-400">Поиск...</p>
+              ) : clientResults.length > 0 ? (
+                <div className="flex flex-col border border-neutral-200 divide-y divide-neutral-100 max-h-60 overflow-y-auto">
+                  {clientResults.map((client) => (
+                    <button
+                      key={client.id}
+                      type="button"
+                      onClick={() => { setSelectedClient(client); setClientResults([]) }}
+                      className="flex flex-col items-start px-3 py-2 text-sm hover:bg-neutral-50 text-left"
+                    >
+                      <span className="font-medium">{client.full_name}</span>
+                      <span className="text-neutral-500">
+                        {client.last_phone}{client.inn ? ` · ИНН ${client.inn}` : ""}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : hasSearchedClients ? (
+                <p className="text-sm text-neutral-400">
+                  Клиенты не найдены. В базе появляются только те, кто уже прошёл оформление сделки
+                  до конца (заполнил паспортные данные) — для нового клиента переключитесь на
+                  «Новый клиент».
+                </p>
+              ) : null}
+            </div>
+          )}
+
+          <PhoneInput
+            label="Телефон для этой заявки"
+            value={manualPhone}
+            onChange={setManualPhone}
+            required
+          />
+
+          <Textarea
+            label="Описание сумки"
+            placeholder="Что хочет продать клиент"
+            rows={3}
+            value={manualDescription}
+            onChange={(e) => setManualDescription(e.target.value)}
+            required
+          />
+
+          {manualError && <ErrorMessage message={manualError} />}
+
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => { setIsManualOpen(false); resetManualForm() }}
+              fullWidth
+            >
+              Отмена
+            </Button>
+            <Button onClick={handleManualSubmit} isLoading={isManualSubmitting} fullWidth>
+              Создать
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

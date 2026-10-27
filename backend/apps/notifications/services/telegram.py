@@ -46,6 +46,17 @@ class TelegramService:
         TelegramService._send(text)
 
     @staticmethod
+    def send_delivery_method_chosen(delivery_request) -> None:
+        application = delivery_request.application
+        text = (
+            f"<b>🚚 Выбран способ передачи — {html.escape(application.phone)}</b>\n\n"
+            f"Способ: {html.escape(delivery_request.get_method_display())}\n"
+            + (f"Адрес: {html.escape(delivery_request.address)}\n" if delivery_request.address else "")
+            + f"\nПосмотреть: {settings.FRONTEND_URL}/admin/applications/{application.id}"
+        )
+        TelegramService._send(text)
+
+    @staticmethod
     def send_document_signed_notification(document) -> None:
         application = document.application
         items = list(application.items.all())

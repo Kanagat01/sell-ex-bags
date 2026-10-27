@@ -71,13 +71,8 @@ class OfferPrice(models.Model):
 
 
 class PersonalData(models.Model):
-    """Персональные данные продавца для договора — хранятся отдельно по 152-ФЗ"""
-
-    application = models.OneToOneField(
-        "applications.Application",
-        on_delete=models.CASCADE,
-        related_name="personal_data",
-    )
+    """Персональные данные продавца для договора — хранятся отдельно по 152-ФЗ.
+    Переиспользуется между заявками одного клиента (см. Application.personal_data)."""
 
     full_name = models.CharField(max_length=300)
     date_of_birth = models.DateField()
@@ -86,11 +81,11 @@ class PersonalData(models.Model):
     passport_issued_by = models.CharField(max_length=500)
     passport_issued_date = models.DateField()
     registration_address = models.TextField()
-    inn = models.CharField(max_length=12, blank=True)
-    account_number = models.CharField(max_length=20, blank=True)
-    bank_name = models.CharField(max_length=500, blank=True)
-    bik = models.CharField(max_length=9, blank=True)
-    correspondent_account = models.CharField(max_length=20, blank=True)
+    inn = models.CharField(max_length=12)
+    account_number = models.CharField(max_length=20)
+    bank_name = models.CharField(max_length=500)
+    bik = models.CharField(max_length=9)
+    correspondent_account = models.CharField(max_length=20)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

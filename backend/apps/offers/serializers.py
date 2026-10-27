@@ -59,6 +59,34 @@ class PersonalDataSerializer(serializers.ModelSerializer):
         return value
 
     def validate_inn(self, value: str) -> str:
-        if value and (not value.isdigit() or len(value) != 12):
+        if not value.isdigit() or len(value) != 12:
             raise serializers.ValidationError("ИНН — 12 цифр")
         return value
+
+    def validate_account_number(self, value: str) -> str:
+        if not value.isdigit() or len(value) != 20:
+            raise serializers.ValidationError("Номер счёта — 20 цифр")
+        return value
+
+    def validate_bik(self, value: str) -> str:
+        if not value.isdigit() or len(value) != 9:
+            raise serializers.ValidationError("БИК — 9 цифр")
+        return value
+
+    def validate_correspondent_account(self, value: str) -> str:
+        if not value.isdigit() or len(value) != 20:
+            raise serializers.ValidationError("Корр. счёт — 20 цифр")
+        return value
+
+
+class PersonalDataSearchResultSerializer(serializers.ModelSerializer):
+    """Результат поиска клиента для ручного создания заявки"""
+
+    last_phone = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PersonalData
+        fields = ["id", "full_name", "date_of_birth", "inn", "last_phone"]
+
+    def get_last_phone(self, obj):
+        return obj.applications.order_by("-created_at").values_list("phone", flat=True).first() or ""
