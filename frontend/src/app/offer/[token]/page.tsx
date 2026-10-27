@@ -169,20 +169,12 @@ function OptionDetails({ option, offer }: { option: OfferOption; offer: Offer })
           </div>
         )
       })}
-      {option.format === ApplicationFormat.TRADE_IN && (offer.trade_in_item_url || offer.trade_in_certificate_amount) && (
+      {option.format === ApplicationFormat.TRADE_IN && offer.trade_in_item_url && (
         <div className="border-t border-neutral-100 pt-3 flex flex-col gap-1 text-sm">
-          {offer.trade_in_item_url ? (
-            <>
-              <span className="text-neutral-500">Ваше изделие для обмена:</span>
-              <a href={offer.trade_in_item_url} target="_blank" rel="noopener noreferrer" className="underline break-all">
-                {offer.trade_in_item_url}
-              </a>
-            </>
-          ) : (
-            <span className="text-neutral-500">
-              Сертификат на сумму: <span className="text-black font-medium">{formatPrice(Number(offer.trade_in_certificate_amount))}</span>
-            </span>
-          )}
+          <span className="text-neutral-500">Ваше изделие для обмена:</span>
+          <a href={offer.trade_in_item_url} target="_blank" rel="noopener noreferrer" className="underline break-all">
+            {offer.trade_in_item_url}
+          </a>
         </div>
       )}
       {option.items.length > 1 && !isCommission && (
