@@ -91,7 +91,10 @@ class PersonalDataView(APIView):
         serializer = PersonalDataSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        OfferService.save_personal_data(offer.application, serializer.validated_data)
+        try:
+            OfferService.save_personal_data(offer.application, serializer.validated_data)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         from apps.contracts.models import Document, DocumentType
         contract = Document.objects.filter(

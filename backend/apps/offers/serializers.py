@@ -1,3 +1,5 @@
+import re
+
 from rest_framework import serializers
 from .models import Offer, PersonalData
 
@@ -47,6 +49,9 @@ class PersonalDataSerializer(serializers.ModelSerializer):
             "bik",
             "correspondent_account",
         ]
+        # inn уникален в БД, но повторный ИНН здесь — не ошибка, а повторный
+        # клиент: его запись обновляется в OfferService.save_personal_data
+        extra_kwargs = {"inn": {"validators": []}}
 
     def validate_passport_series(self, value: str) -> str:
         if not value.isdigit() or len(value) != 4:
@@ -82,11 +87,19 @@ class PersonalDataSerializer(serializers.ModelSerializer):
 class PersonalDataSearchResultSerializer(serializers.ModelSerializer):
     """Результат поиска клиента для ручного создания заявки"""
 
-    last_phone = serializers.SerializerMethodField()
+    phone = serializers.SerializerMethodField()
 
     class Meta:
         model = PersonalData
-        fields = ["id", "full_name", "date_of_birth", "inn", "last_phone"]
+        fields = ["id", "full_name", "date_of_birth", "inn", "phone"]
 
-    def get_last_phone(self, obj):
-        return obj.applications.order_by("-created_at").values_list("phone", flat=True).first() or ""
+    def get_phone(self, obj):
+        """Номер клиента, совпавший с поисковым запросом (у клиента их может
+        быть несколько); если искали не по номеру — из последней заявки."""
+        phones = list(obj.applications.order_by("-created_at").values_list("phone", flat=True))
+        digits = self.context.get("phone_digits")
+        if digits:
+            matched = next((p for p in phones if digits in re.sub(r"\D", "", p)), None)
+            if matched:
+                return matched
+        return phones[0] if phones else ""

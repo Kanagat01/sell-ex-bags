@@ -285,8 +285,8 @@ export default function ApplicationDetailPage() {
               "Без изделий"
             ) : (
               <>
-                {application.items[0].brand || application.items[0].manual_description || "Без описания"}
-                {application.items[0].brand && application.items[0].model ? ` ${application.items[0].model}` : ""}
+                {application.items[0].brand}
+                {application.items[0].model ? ` ${application.items[0].model}` : ""}
                 {application.items.length > 1 && (
                   <span className="ml-2 text-base font-normal text-neutral-500">
                     +{application.items.length - 1} изд.
@@ -296,7 +296,7 @@ export default function ApplicationDetailPage() {
             )}
           </h1>
           <p className="text-sm text-neutral-500">
-            {application.format ? FORMAT_LABELS[application.format] : "Формат не выбран"} · {formatDateTime(application.created_at)}
+            {application.format ? `${FORMAT_LABELS[application.format]} · ` : ""}{formatDateTime(application.created_at)}
           </p>
           {(application.last_name || application.first_name || application.middle_name || application.personal_data) && (
             <p className="text-sm text-neutral-500">
@@ -316,7 +316,7 @@ export default function ApplicationDetailPage() {
             <div key={item.id} className="flex flex-col gap-4 border border-neutral-200 p-5">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="font-medium">
-                  Изделие {idx + 1}{item.brand ? `: ${item.brand}${item.model ? ` ${item.model}` : ""}` : ""}
+                  Изделие {idx + 1}: {item.brand}{item.model ? ` ${item.model}` : ""}
                 </h2>
                 {canEdit && (
                   <Button variant="secondary" onClick={() => openEdit(item)}>
@@ -325,19 +325,7 @@ export default function ApplicationDetailPage() {
                 )}
               </div>
               {item.photos.length > 0 && <PhotoGallery photos={item.photos} />}
-              {!item.brand && item.manual_description ? (
-                <div className="grid grid-cols-2 gap-y-3 text-sm">
-                  <span className="text-neutral-500">Описание</span>
-                  <span>{item.manual_description}</span>
-                  {item.offered_price && (
-                    <>
-                      <span className="text-neutral-500">Предложенная цена</span>
-                      <span className="font-medium">{formatPrice(item.offered_price)}</span>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-y-3 text-sm">
                   <span className="text-neutral-500">Бренд</span>
                   <span>{item.brand}</span>
                   {item.model && (
@@ -352,12 +340,8 @@ export default function ApplicationDetailPage() {
                       <span>{item.size}</span>
                     </>
                   )}
-                  {item.condition && (
-                    <>
-                      <span className="text-neutral-500">Состояние</span>
-                      <span>{CONDITION_LABELS[item.condition]}</span>
-                    </>
-                  )}
+                  <span className="text-neutral-500">Состояние</span>
+                  <span>{CONDITION_LABELS[item.condition]}</span>
                   {item.defects_description && (
                     <>
                       <span className="text-neutral-500">Изъяны</span>
@@ -376,8 +360,7 @@ export default function ApplicationDetailPage() {
                       <span className="font-medium">{formatPrice(item.offered_price)}</span>
                     </>
                   )}
-                </div>
-              )}
+              </div>
             </div>
           ))}
         </div>
@@ -837,7 +820,7 @@ export default function ApplicationDetailPage() {
                     }
                   />
                   <span>
-                    {item.brand ? `${item.brand}${item.model ? ` ${item.model}` : ""}` : item.manual_description}
+                    {item.brand}{item.model ? ` ${item.model}` : ""}
                     <span className="text-neutral-500"> — сейчас {formatPrice(item.offered_price ?? 0)}</span>
                   </span>
                 </label>

@@ -31,9 +31,8 @@ export interface ApplicationItem {
   brand: string;
   model?: string;
   size: string;
-  condition: ApplicationCondition | "";
+  condition: ApplicationCondition;
   defects_description: string;
-  manual_description: string;
   desired_price: string | null;
   offered_price: string | null;
   order: number;
@@ -69,6 +68,7 @@ export interface DeliveryRequestInfo {
 
 export interface Application {
   id: string;
+  // Пусто у заявок, созданных админом, пока не отправлено предложение
   format: ApplicationFormat | "";
   phone: string;
   email: string;
@@ -141,17 +141,25 @@ export interface UpdateItemPayload {
   size?: string;
   condition?: ApplicationCondition;
   defects_description?: string;
-  manual_description?: string;
   desired_price?: number;
+}
+
+export interface ManualItemPayload {
+  brand: string;
+  model?: string;
+  size?: string;
+  condition: ApplicationCondition;
+  defects_description?: string;
 }
 
 export interface ManualCreateApplicationPayload {
   phone: string;
+  email?: string;
   last_name?: string;
   first_name?: string;
   middle_name?: string;
-  description: string;
   personal_data_id?: number;
+  items: ManualItemPayload[];
 }
 
 export interface ClientSearchResult {
@@ -159,7 +167,8 @@ export interface ClientSearchResult {
   full_name: string;
   date_of_birth: string;
   inn: string;
-  last_phone: string;
+  // Номер, совпавший с поиском; если искали не по номеру — из последней заявки
+  phone: string;
 }
 
 export interface SendAmendmentPayload {

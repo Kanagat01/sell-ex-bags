@@ -28,7 +28,7 @@ class ApplicationItemSerializer(serializers.ModelSerializer):
         model = ApplicationItem
         fields = [
             "id", "brand", "model", "size", "condition",
-            "defects_description", "manual_description",
+            "defects_description",
             "desired_price", "offered_price",
             "order", "photos",
         ]
@@ -251,20 +251,30 @@ class UpdateApplicationItemSerializer(serializers.ModelSerializer):
         model = ApplicationItem
         fields = [
             "brand", "model", "size", "condition",
-            "defects_description", "manual_description", "desired_price",
+            "defects_description", "desired_price",
         ]
+
+
+class ManualItemSerializer(serializers.Serializer):
+    brand = serializers.CharField(max_length=100)
+    model = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+    size = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
+    condition = serializers.ChoiceField(choices=ApplicationCondition.choices)
+    defects_description = serializers.CharField(required=False, allow_blank=True, default="")
 
 
 class ManualCreateApplicationSerializer(serializers.Serializer):
     """Администратор создаёт заявку вручную от имени клиента, обратившегося
-    вне платформы. Фото и желаемая цена не вводятся на этом шаге."""
+    вне платформы. Всё как в обычной заявке, кроме фото и желаемой цены;
+    формат не выбирается — его задаст предложение."""
 
     phone = serializers.CharField(max_length=20)
+    email = serializers.EmailField(required=False, allow_blank=True, default="")
     last_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
     first_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
     middle_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
-    description = serializers.CharField()
     personal_data_id = serializers.IntegerField(required=False, allow_null=True, default=None)
+    items = ManualItemSerializer(many=True, min_length=1)
 
     def validate_phone(self, value):
         normalized = normalize_phone(value)

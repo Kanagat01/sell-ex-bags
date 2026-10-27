@@ -43,6 +43,35 @@ ACT_TEMPLATE_MAP = {
 
 AMENDMENT_TEMPLATE = "contracts/amendment.html"
 
+# Шаблон доп. соглашения от заказчика — для комиссии; для выкупа и мены
+# тот же документ с минимальными заменами (вид договора, стороны, пункт).
+AMENDMENT_TERMS = {
+    ApplicationFormat.COMMISSION: {
+        "contract_kind": "договору комиссии",
+        "party1": "Комиссионер",
+        "party2": "Комитент",
+        "clause": "Изменить минимальную стоимость продажи, максимальную стоимость продажи, "
+                  "указанные в Таблице 1. Договора комиссии и установить их в следующем размере:",
+        "min_max": True,
+    },
+    ApplicationFormat.PURCHASE: {
+        "contract_kind": "договору купли-продажи",
+        "party1": "Покупатель",
+        "party2": "Продавец",
+        "clause": "Изменить цену Имущества, указанную в п. 2.1. Договора купли-продажи "
+                  "и установить её в следующем размере:",
+        "min_max": False,
+    },
+    ApplicationFormat.TRADE_IN: {
+        "contract_kind": "договору мены",
+        "party1": "Сторона 1",
+        "party2": "Сторона 2",
+        "clause": "Изменить стоимость обмениваемых товаров, указанную в п. 1.4. и п. 1.5. "
+                  "Договора мены и установить её в следующем размере:",
+        "min_max": False,
+    },
+}
+
 
 def amount_to_words(value: Decimal) -> str:
     rubles = int(value)
@@ -196,8 +225,6 @@ class DocumentService:
         Новые цены фиксируются в AmendmentDetail, но item.offered_price
         меняется только после того, как клиент подпишет документ по SMS
         (см. confirm_signature)."""
-        from weasyprint import HTML
-
         document, _ = Document.objects.get_or_create(
             application=application,
             document_type=DocumentType.AMENDMENT,
@@ -218,12 +245,28 @@ class DocumentService:
             ))
         AmendmentDetail.objects.bulk_create(details)
 
-        context = DocumentService._build_context(application, document)
-        context["amendment_details"] = document.amendment_details.select_related("item").order_by("item__order")
-        html_string = render_to_string(AMENDMENT_TEMPLATE, context)
-        pdf_bytes = HTML(string=html_string, base_url=ASSETS_BASE_URL).write_pdf()
-        document.pdf_file.save(f"amendment_{application.pk}.pdf", BytesIO(pdf_bytes), save=True)
+        DocumentService._save_amendment_pdf(application, document)
         return document
+
+    @staticmethod
+    def render_amendment_pdf(application: Application, document: Document) -> bytes:
+        from weasyprint import HTML
+
+        context = DocumentService._build_context(application, document)
+        details = list(document.amendment_details.select_related("item").order_by("item__order"))
+        # Для комиссии new_price — максимальная стоимость продажи, минимальная
+        # (сколько получит комитент) считается так же, как в договоре.
+        for detail in details:
+            detail.new_min_price = commission_seller_gets(detail.new_price)
+        context["amendment_details"] = details
+        context["terms"] = AMENDMENT_TERMS[application.format]
+        html_string = render_to_string(AMENDMENT_TEMPLATE, context)
+        return HTML(string=html_string, base_url=ASSETS_BASE_URL).write_pdf()
+
+    @staticmethod
+    def _save_amendment_pdf(application: Application, document: Document) -> None:
+        pdf_bytes = DocumentService.render_amendment_pdf(application, document)
+        document.pdf_file.save(f"amendment_{application.pk}.pdf", BytesIO(pdf_bytes), save=True)
 
     @staticmethod
     def request_sms_code(document: Document) -> SmsCode:
@@ -297,6 +340,8 @@ class DocumentService:
                 detail.item.offered_price = detail.new_price
                 items.append(detail.item)
             ApplicationItem.objects.bulk_update(items, ["offered_price"])
+            # Перегенерируем PDF, чтобы в нём появилась отметка о подписи
+            DocumentService._save_amendment_pdf(document.application, document)
         elif document.document_type == DocumentType.CLOSING_REPORT:
             pass  # загруженный администратором файл, перегенерировать нечего
         else:

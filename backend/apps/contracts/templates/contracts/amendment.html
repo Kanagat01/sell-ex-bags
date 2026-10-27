@@ -8,97 +8,186 @@
     <style>
       {% include "contracts/_base_styles.html" %}
 
-      /* === LOCAL: доп. соглашение об изменении цены (временный шаблон) === */
-      @page {
-        @bottom-left {
-          content: "";
-          font-size: 9pt;
-          margin-top: -25px;
-          margin-left: 7px;
-        }
+      /* === LOCAL: доп. соглашение (по шаблону заказчика, docx) === */
+      @page amendment {
+        size: A4 portrait;
+        margin: 20mm 15mm 20mm 30mm;
       }
       body {
+        font-size: 11pt;
+        line-height: 1.08;
+      }
+      .amendment {
+        page: amendment;
+      }
+      .amendment p {
+        margin: 0 0 8pt;
+      }
+      .indent-first {
+        text-indent: 12.5mm;
+      }
+
+      /* === Table === */
+      .custom-table {
+        width: 129.5mm;
+        border-collapse: collapse;
+        margin: 0 0 8pt;
+      }
+      /* Как в docx: поля ячейки 100 twips (1.76mm), мин. высота строки
+         501 twips (8.84mm — вместе с полями, поэтому height = 8.84 - 2*1.76),
+         одинарный интервал, рамка 1pt */
+      .custom-table th,
+      .custom-table td {
         font-size: 9pt;
+        font-weight: 300;
+        line-height: 1.15;
+        padding: 1.76mm;
+        height: 5.32mm;
+        vertical-align: top;
+        text-align: left;
+        hyphens: none;
+        border: 1pt solid #000;
       }
-      .indent {
-        margin-left: 12.5mm;
+
+      /* === Signatures === */
+      .sign-table {
+        width: 100%;
+        border-collapse: collapse;
       }
-      .sign-img {
-        left: -1mm;
+      .sign-table td {
+        width: 50%;
+        vertical-align: top;
+        text-align: left;
+        padding: 0;
+        position: relative;
       }
-      .stamp-img {
-        left: -20mm;
+      .sign-table p {
+        margin: 0 0 8pt;
+        min-height: 11pt;
       }
-      .appendix-title {
-        text-align: end;
-        font-weight: bold;
+      /* Координаты как в docx: печать от верха ячейки, подпись от строки
+         «ООО «Эксбэгс»» — обе над линией подписи. */
+      .sign-table .stamp-img {
+        top: 1mm;
+        bottom: auto;
+        left: 1.9mm;
+        width: 42.5mm;
       }
-      .signatures {
-        padding-right: 5mm;
+      .sign-table .sign-img {
+        top: 10mm;
+        bottom: auto;
+        left: -0.5mm;
+        width: 34.4mm;
       }
     </style>
   </head>
 
   <body>
-    <div class="appendix">
-      <div class="doc-logo"><img src="logo.png" /></div>
-      <p class="text-center mt-3" style="font-weight: 600">
-        ДОПОЛНИТЕЛЬНОЕ СОГЛАШЕНИЕ № {{ document_number }}
-        от {{ document_date|date:"d.m.Y" }}
+    <div class="amendment">
+      <p class="text-center">
+        ДОПОЛНИТЕЛЬНОЕ СОГЛАШЕНИЕ №{{ document_number }}
       </p>
-      <p class="text-center mt-3">
-        к договору № {{ contract_number }} от {{ contract_date|date:"d.m.Y" }} г.
+      <p class="text-center">к {{ terms.contract_kind }} № {{ contract_number }}</p>
+      <p class="text-center">
+        от «{{ contract_date|date:"d" }}» {{ contract_date|date:"E" }}
+        {{ contract_date|date:"Y" }} года
       </p>
-      <p class="mt-3">
-        <span class="indent">Общество</span> с ограниченной ответственностью
-        «Эксбэгс», в лице директора Иванец Арины Романовны, действующего на
-        основании Устава, и {{ seller_fullname }}, с другой стороны, заключили
-        настоящее дополнительное соглашение об изменении стоимости следующих
-        изделий:
-      </p>
-      {% for detail in amendment_details %}
-      <p class="mt-3">
-        <span class="indent">-</span>
-        «{% if detail.item.brand %}{{ detail.item.brand }} {{ detail.item.model }}{% else %}{{ detail.item.manual_description }}{% endif %}»:
-        ранее согласованная стоимость {{ detail.old_price }} ₽,
-        новая согласованная стоимость {{ detail.new_price }} ₽{% if forloop.last %}.{% else %};{% endif %}
-      </p>
-      {% endfor %}
-      <p class="mt-3 indent">
-        Настоящее соглашение является неотъемлемой частью договора и вступает
-        в силу с момента его подписания Сторонами.
-      </p>
-      <div class="mt-6"></div>
-      <div class="signatures">
-        <div>
-          <p class="mt-3">От Общества</p>
-          <p class="mt-3">Директор ООО «ЭКСБЭГС»</p>
-          <div class="signature-line">
-            ____________________/Иванец А.Р.
 
-            <img
-              class="sign-img"
-              src="sign.png"
-            />
-            <img
-              class="stamp-img"
-              src="stamp.png"
-            />
-          </div>
-        </div>
-        <div>
-          <p class="mt-3">От второй стороны</p>
-          <div class="mt-6"></div>
-          <span class="mt-3"
-            >{% if signed_at %}
-            <span style="text-decoration: underline"
-              >Подписан [{{ signed_at|date:"d.m.Y H:i" }}] посредством
-              СМС-подтверждения с номера [{{ seller_phone }}]</span
-            >{% else %}___________________
-            {%endif%}/{{ seller_fullname|short_fio }}</span
-          >
-        </div>
+      <div class="flex justify-between" style="margin-bottom: 8pt">
+        <span>г. Москва</span>
+        <span>
+          «{{ document_date|date:"d" }}» {{ document_date|date:"E" }}
+          {{ document_date|date:"Y" }} г.
+        </span>
       </div>
+
+      <p>
+        Общество с ограниченной ответственностью «Эксбэгс», в лице директора
+        Иванец Арины Романовны, действующего на основании Устава, далее
+        именуемое {{ terms.party1 }}, с одной стороны и {{ seller_fullname }},
+        далее именуемый (-ая) {{ terms.party2 }}, с другой стороны заключили
+        настоящее дополнительное соглашение о нижеследующем:
+      </p>
+
+      <p class="indent-first">1. {{ terms.clause }}</p>
+
+      <table class="custom-table">
+        {% if terms.min_max %}
+        <colgroup>
+          <col style="width: 26.1%" />
+          <col style="width: 10.9%" />
+          <col style="width: 28.3%" />
+          <col style="width: 34.7%" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Наименование товара</th>
+            <th>Количество</th>
+            <th>Минимальная стоимость продажи, согласованная Комитентом</th>
+            <th>Максимальная стоимость продажи, согласованная Комитентом</th>
+          </tr>
+        </thead>
+        {% else %}
+        <colgroup>
+          <col style="width: 45%" />
+          <col style="width: 15%" />
+          <col style="width: 40%" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Наименование товара</th>
+            <th>Количество</th>
+            <th>Стоимость</th>
+          </tr>
+        </thead>
+        {% endif %}
+        <tbody>
+          {% for detail in amendment_details %}
+          <tr>
+            <td>{{ detail.item.brand }} {{ detail.item.model }}</td>
+            <td>1 шт.</td>
+            {% if terms.min_max %}
+            <td>{{ detail.new_min_price|floatformat:"-2" }} ₽</td>
+            {% endif %}
+            <td>{{ detail.new_price|floatformat:"-2" }} ₽</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <p class="indent-first">
+        2. Данное дополнительное соглашение составлено в двух экземплярах для
+        каждой из сторон.
+      </p>
+
+      <p class="text-center">ПОДПИСИ СТОРОН</p>
+      <p>&nbsp;</p>
+
+      <table class="sign-table">
+        <tr>
+          <td>
+            <img class="stamp-img" src="stamp.png" />
+            <img class="sign-img" src="sign.png" />
+            <p>{{ terms.party1 }}</p>
+            <p>ООО «Эксбэгс»</p>
+            <p>Директор</p>
+            <p>&nbsp;</p>
+            <p>&nbsp;</p>
+            <p>____________/Иванец А.Р.</p>
+          </td>
+          <td>
+            <p>{{ terms.party2 }}</p>
+            <p>&nbsp;</p>
+            <p>&nbsp;</p>
+            <p>
+              {% if signed_at %}<span style="text-decoration: underline"
+                >Подписан [{{ signed_at|date:"d.m.Y H:i" }}] посредством
+                СМС-подтверждения с номера [{{ seller_phone }}]</span
+              >{% else %}____________{% endif %}/ {{ seller_fullname|short_fio }}
+            </p>
+          </td>
+        </tr>
+      </table>
     </div>
   </body>
 </html>

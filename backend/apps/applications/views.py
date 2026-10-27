@@ -282,19 +282,26 @@ class AdminClientSearchView(ListAPIView):
         from apps.offers.serializers import PersonalDataSearchResultSerializer
         return PersonalDataSearchResultSerializer
 
-    def get_queryset(self) -> QuerySet:
+    def _query(self) -> tuple[str, str]:
         import re
+        q = self.request.query_params.get("q", "").strip()
+        return q, re.sub(r"\D", "", q)
+
+    def get_serializer_context(self):
+        # Чтобы в результате показать именно тот номер клиента, что совпал с запросом
+        return {**super().get_serializer_context(), "phone_digits": self._query()[1]}
+
+    def get_queryset(self) -> QuerySet:
         from django.db.models import Q
         from apps.offers.models import PersonalData
 
-        q = self.request.query_params.get("q", "").strip()
+        q, digits = self._query()
         if not q:
             return PersonalData.objects.none()
 
         filters = Q(full_name__icontains=q) | Q(inn__icontains=q)
         # Телефон ищем по частичному совпадению цифр — не требуем полный
         # валидный номер, чтобы находить и по "999", и по кускам номера.
-        digits = re.sub(r"\D", "", q)
         if digits:
             filters |= Q(applications__phone__icontains=digits)
 

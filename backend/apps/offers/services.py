@@ -89,13 +89,17 @@ class OfferService:
     def save_personal_data(application: Application, data: dict) -> PersonalData:
         """Сохранить персональные данные и создать договор.
 
-        Клиент ищется среди PersonalData, уже привязанных к заявкам с тем же
-        телефоном: если совпадает ИНН (уникальный госномер, обязателен для
-        заполнения) — это тот же человек, его запись обновляется; иначе
-        (телефон переиспользован другим человеком) создаётся новая отдельная
-        запись."""
-        candidates = PersonalData.objects.filter(applications__phone=application.phone).distinct()
-        match = candidates.filter(inn=data["inn"]).order_by("-created_at").first()
+        Клиент определяется по ИНН (уникальный госномер, обязателен): если
+        запись с таким ИНН уже есть — это тот же человек (возможно, с другого
+        телефона), его данные обновляются; иначе создаётся новый клиент.
+        Дата рождения при совпадении ИНН должна совпадать — иначе это, скорее
+        всего, опечатка в ИНН, и чужие данные перезаписывать нельзя."""
+        match = PersonalData.objects.filter(inn=data["inn"]).first()
+        if match and match.date_of_birth != data["date_of_birth"]:
+            raise ValueError(
+                "Этот ИНН уже зарегистрирован с другой датой рождения. "
+                "Проверьте ИНН и дату рождения."
+            )
 
         if match:
             for field, value in data.items():

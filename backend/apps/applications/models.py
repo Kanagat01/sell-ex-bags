@@ -24,6 +24,8 @@ class ApplicationCondition(models.TextChoices):
 
 
 class Application(models.Model):
+    # Пусто у заявок, созданных админом вручную, — формат выбирается
+    # при отправке предложения (ApplicationService.approve / OfferService.accept)
     format = models.CharField(
         max_length=20,
         choices=ApplicationFormat.choices,
@@ -76,16 +78,15 @@ class ApplicationItem(models.Model):
         on_delete=models.CASCADE,
         related_name="items",
     )
-    brand = models.CharField(max_length=100, blank=True)
+    brand = models.CharField(max_length=100)
     model = models.CharField(max_length=200, blank=True)
     size = models.CharField(max_length=50, blank=True)
     condition = models.CharField(
         max_length=20,
         choices=ApplicationCondition.choices,
-        blank=True,
     )
     defects_description = models.TextField(blank=True)
-    manual_description = models.TextField(blank=True, default="")
+    # Необязательна: при ручном создании заявки админом её нет
     desired_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     offered_price = models.DecimalField(
         max_digits=12,
