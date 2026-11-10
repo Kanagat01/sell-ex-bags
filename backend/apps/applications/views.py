@@ -110,7 +110,7 @@ class AdminApplicationDetailView(RetrieveDestroyAPIView):
     permission_classes = [IsAdminUser]
     serializer_class = ApplicationDetailSerializer
     queryset = Application.objects.select_related(
-        "personal_data", "delivery_request"
+        "personal_data", "delivery_request", "offer"
     ).prefetch_related("items", "items__photos", "documents")
 
 

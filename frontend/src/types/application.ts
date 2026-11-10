@@ -59,6 +59,12 @@ export interface ClosingReportInfo {
   sign_token: string | null;
 }
 
+export interface OfferLink {
+  url: string;
+  is_used: boolean;
+  is_expired: boolean;
+}
+
 export interface DeliveryRequestInfo {
   is_confirmed: boolean;
   method: string;
@@ -81,6 +87,7 @@ export interface Application {
   trade_in_certificate_amount: string | null;
   // Варианты, отправленные клиенту (пока он не выбрал один)
   offer_options: SentOfferOption[];
+  offer_link: OfferLink | null;
   last_name: string;
   first_name: string;
   middle_name: string;

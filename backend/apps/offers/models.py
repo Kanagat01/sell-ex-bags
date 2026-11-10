@@ -30,6 +30,10 @@ class Offer(models.Model):
     def is_expired(self) -> bool:
         return timezone.now() > self.expires_at
 
+    @property
+    def url(self) -> str:
+        return f"{settings.FRONTEND_URL}/offer/{self.token}"
+
     def get_options(self) -> list[tuple[str, list]]:
         """Варианты сотрудничества: [(format, [(item, price), ...]), ...]
         в порядке Выкуп → Trade-In → Реализация. Для старых офферов (без

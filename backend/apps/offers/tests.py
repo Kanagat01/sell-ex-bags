@@ -1,6 +1,7 @@
 from decimal import Decimal
 from unittest import mock
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.test import TestCase, override_settings
@@ -167,6 +168,23 @@ class MultiFormatOfferTests(TestCase):
         self.assertIn("реализация за 160 000 ₽, вы получите 106 667 ₽ после продажи", send_sms.call_args.args[1])
 
     @override_settings(FRONTEND_URL="https://sell.example")
+    def test_admin_sees_same_offer_link_as_sent_to_client(self):
+        self.assertIsNone(self._detail()["offer_link"])
+        self._approve([{"format": "purchase", "items": [{"id": self.bag.id, "offered_price": 70000}]}])
+        offer = Offer.objects.get(application=self.application)
+
+        with mock.patch("apps.notifications.services.sms.SmsService._send") as send_sms:
+            tasks.send_offer_sms.apply(args=[str(self.application.id)]).get()
+        sent_url = f"{settings.FRONTEND_URL}/offer/{offer.token}"
+        self.assertIn(sent_url, send_sms.call_args.args[1])
+        self.assertEqual(self._detail()["offer_link"], {"url": sent_url, "is_used": False, "is_expired": False})
+
+        self.client.post(f"/api/offer/{offer.token}/accept/")
+        self.assertTrue(self._detail()["offer_link"]["is_used"])
+
+    def _detail(self):
+        return self.admin.get(f"/api/admin/applications/{self.application.pk}/").data
+
     def test_single_purchase_notification(self):
         self._approve([
             {"format": "purchase", "items": [{"id": self.bag.id, "offered_price": 70000}]},

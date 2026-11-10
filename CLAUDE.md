@@ -87,6 +87,8 @@
   В Git Bash добавлять `MSYS_NO_PATHCONV=1`, иначе `-w /app` превращается в Windows-путь.
 - Миграции **только** через `makemigrations` (руками не писать). Data-migration —
   `makemigrations <app> --empty`, затем дописать `RunPython` с обратной функцией.
+- Код бэкенда подключён volume-ом, но gunicorn и celery его не перечитывают: после правок
+  бэкенда — `docker compose restart backend celery celery-beat`, иначе API отдаёт старое.
 - Рендер PDF (WeasyPrint) работает только в контейнере, не на Windows-хосте.
 - У контейнера `frontend` нет volume с исходниками — `tsc`/`eslint` внутри него проверяют
   старый код образа. Проверять на хосте: `cd frontend && npx tsc --noEmit && npx eslint src`.

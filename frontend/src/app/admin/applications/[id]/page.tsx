@@ -80,6 +80,7 @@ export default function ApplicationDetailPage() {
   const [isSendingReport, setIsSendingReport] = useState(false)
 
   const [isRequestingDelivery, setIsRequestingDelivery] = useState(false)
+  const [isLinkCopied, setIsLinkCopied] = useState(false)
 
   const rejectForm = useForm<RejectForm>({
     resolver: zodResolver(rejectSchema) as Resolver<RejectForm>,
@@ -202,6 +203,16 @@ export default function ApplicationDetailPage() {
       setActionError(getApiError(e, "Ошибка при запросе способа передачи"))
     } finally {
       setIsRequestingDelivery(false)
+    }
+  }
+
+  const copyOfferLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url)
+      setIsLinkCopied(true)
+      setTimeout(() => setIsLinkCopied(false), 2000)
+    } catch {
+      setActionError("Не удалось скопировать — выделите ссылку и скопируйте вручную")
     }
   }
 
@@ -377,6 +388,28 @@ export default function ApplicationDetailPage() {
               )}
             </div>
           </div>
+
+          {application.offer_link && (
+            <div className="flex flex-col gap-3 border border-neutral-200 p-5">
+              <h2 className="font-medium">Ссылка на предложение</h2>
+              <div className="flex gap-2">
+                <input
+                  readOnly
+                  value={application.offer_link.url}
+                  onFocus={(e) => e.target.select()}
+                  className="flex-1 min-w-0 border-[0.8px] border-black rounded-[8px] px-3 py-2 text-sm"
+                />
+                <Button variant="secondary" onClick={() => copyOfferLink(application.offer_link!.url)}>
+                  {isLinkCopied ? "Скопировано" : "Скопировать"}
+                </Button>
+              </div>
+              {application.offer_link.is_used ? (
+                <p className="text-sm text-neutral-500">Клиент уже ответил на предложение — ссылка больше не откроется</p>
+              ) : application.offer_link.is_expired ? (
+                <p className="text-sm text-neutral-500">Срок действия ссылки истёк</p>
+              ) : null}
+            </div>
+          )}
 
           {/* Trade-in предпочтение */}
           {application.format === ApplicationFormat.TRADE_IN && (application.trade_in_item_url || application.trade_in_certificate_amount) && (

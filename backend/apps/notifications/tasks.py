@@ -1,6 +1,5 @@
 import logging
 from celery import shared_task
-from django.conf import settings
 
 
 logger = logging.getLogger(__name__)
@@ -168,7 +167,7 @@ def send_offer_email(self, application_id: str) -> None:
     from apps.notifications.services.email import EmailService
 
     application = Application.objects.prefetch_related("items").select_related("offer").get(id=application_id)
-    offer_url = f"{settings.FRONTEND_URL}/offer/{application.offer.token}"
+    offer_url = application.offer.url
     options = application.offer.get_options()
     if len(options) > 1:
         EmailService.send_offer_options_notification(
@@ -194,7 +193,7 @@ def send_offer_sms(self, application_id: str) -> None:
     from apps.notifications.services.sms import SmsService
 
     application = Application.objects.prefetch_related("items").select_related("offer").get(id=application_id)
-    offer_url = f"{settings.FRONTEND_URL}/offer/{application.offer.token}"
+    offer_url = application.offer.url
     options = application.offer.get_options()
     if len(options) > 1:
         SmsService.send_offer_options_notification(

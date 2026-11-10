@@ -126,6 +126,14 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     amendment_sent = serializers.SerializerMethodField()
     closing_report = serializers.SerializerMethodField()
     delivery_request = serializers.SerializerMethodField()
+    offer_link = serializers.SerializerMethodField()
+
+    def get_offer_link(self, obj):
+        """Ссылка на предложение, отправленная клиенту, — чтобы админ мог переслать её вручную."""
+        offer = getattr(obj, "offer", None)
+        if offer is None:
+            return None
+        return {"url": offer.url, "is_used": offer.is_used, "is_expired": offer.is_expired()}
 
     def get_act_sent(self, obj):
         from apps.contracts.models import DocumentType
@@ -204,7 +212,7 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
             "last_name", "first_name", "middle_name", "is_manual", "personal_data",
             "status", "items", "act_sent", "signed_documents",
             "trade_in_item_url", "trade_in_certificate_amount",
-            "offer_options", "amendment_sent", "closing_report", "delivery_request",
+            "offer_options", "offer_link", "amendment_sent", "closing_report", "delivery_request",
             "created_at", "updated_at",
         ]
 
