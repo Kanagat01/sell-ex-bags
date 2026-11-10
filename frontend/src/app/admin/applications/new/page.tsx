@@ -8,7 +8,7 @@ import { ApplicationCondition, ClientSearchResult } from "@/types"
 import { Button, Input, PhoneInput, Select, Textarea } from "@/components/ui"
 import { ErrorMessage } from "@/components/shared"
 import {
-  BRANDS_BAGS, BRANDS_WATCHES, ITEM_CATEGORIES, CONDITION_LABELS, ItemCategory, getApiError, normalizePhone,
+  BRANDS_BY_CATEGORY, ITEM_CATEGORIES, CONDITION_LABELS, ItemCategory, getApiError, normalizePhone,
 } from "@/utils"
 
 const categoryOptions = Object.entries(ITEM_CATEGORIES).map(([value, label]) => ({ value, label }))
@@ -188,7 +188,7 @@ export default function NewApplicationPage() {
 
       {/* Изделия */}
       {items.map((item, index) => {
-        const brandList = item.category === "bags" ? BRANDS_BAGS : item.category === "watches" ? BRANDS_WATCHES : []
+        const brandList = item.category ? BRANDS_BY_CATEGORY[item.category] : []
         const brandOptions = brandList.map((b) => ({ value: b, label: b }))
         return (
           <div key={index} className="flex flex-col gap-4 border border-neutral-200 p-5">

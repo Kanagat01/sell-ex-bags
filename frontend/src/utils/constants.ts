@@ -83,9 +83,16 @@ export const BRANDS_WATCHES = [
 export const ITEM_CATEGORIES = {
   bags: "Сумки",
   watches: "Часы и ювелирные изделия",
+  accessories: "Очки и аксессуары",
 } as const;
 
 export type ItemCategory = keyof typeof ITEM_CATEGORIES;
+
+export const BRANDS_BY_CATEGORY: Record<ItemCategory, readonly string[]> = {
+  bags: BRANDS_BAGS,
+  watches: BRANDS_WATCHES,
+  accessories: BRANDS_BAGS,
+};
 
 export const FORMAT_LABELS: Record<ApplicationFormat, string> = {
   [ApplicationFormat.PURCHASE]: "Выкуп",

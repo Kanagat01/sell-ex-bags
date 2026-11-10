@@ -9,7 +9,7 @@ import { useApplicationForm } from "@/hooks"
 import { Button, Input, PhoneInput, Select, Textarea, FileUpload } from "@/components/ui"
 import { ErrorMessage } from "@/components/shared"
 import {
-  FORMAT_LABELS, BRANDS_BAGS, BRANDS_WATCHES, ITEM_CATEGORIES, CONDITION_LABELS,
+  FORMAT_LABELS, BRANDS_BY_CATEGORY, ITEM_CATEGORIES, CONDITION_LABELS,
   formatPrice, calcCommissionBreakdown, ItemCategory,
 } from "@/utils"
 import { ApplicationCondition, ApplicationFormat } from "@/types"
@@ -94,7 +94,7 @@ export default function ApplicationPage() {
           {/* Изделия */}
           {fields.map((field, index) => {
             const category = categories[index] ?? ("" as ItemCategory | "")
-            const brandList = category === "bags" ? BRANDS_BAGS : category === "watches" ? BRANDS_WATCHES : []
+            const brandList = category ? BRANDS_BY_CATEGORY[category] : []
             const brandOptions = brandList.map((b) => ({ value: b, label: b }))
             const itemErrors = errors.items?.[index]
 
