@@ -45,7 +45,7 @@ const schema = z.object({
     .string()
     .min(1, "Укажите телефон")
     .regex(/^\+7\d{10}$/, "Номер в формате +7XXXXXXXXXX, например +79991234567"),
-  email: z.email("Неверный формат email").optional().or(z.literal("")),
+  email: z.email("Укажите email, например name@mail.ru"),
   items: z.array(itemSchema).min(1),
   trade_in_item_url: z.string().optional(),
   trade_in_certificate_amount: z.coerce.number().positive().optional(),

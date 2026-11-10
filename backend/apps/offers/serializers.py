@@ -49,8 +49,7 @@ class PersonalDataSerializer(serializers.ModelSerializer):
             "bik",
             "correspondent_account",
         ]
-        # inn уникален в БД, но повторный ИНН здесь — не ошибка, а повторный
-        # клиент: его запись обновляется в OfferService.save_personal_data
+        # Повторный ИНН — не ошибка, а повторный клиент (см. OfferService.save_personal_data)
         extra_kwargs = {"inn": {"validators": []}}
 
     def validate_passport_series(self, value: str) -> str:

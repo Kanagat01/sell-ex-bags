@@ -43,8 +43,7 @@ ACT_TEMPLATE_MAP = {
 
 AMENDMENT_TEMPLATE = "contracts/amendment.html"
 
-# Шаблон доп. соглашения от заказчика — для комиссии; для выкупа и мены
-# тот же документ с минимальными заменами (вид договора, стороны, пункт).
+# Шаблон заказчика — для комиссии; выкуп и мена — его минимальная адаптация
 AMENDMENT_TERMS = {
     ApplicationFormat.COMMISSION: {
         "contract_kind": "договору комиссии",
@@ -220,11 +219,8 @@ class DocumentService:
     @staticmethod
     @transaction.atomic
     def generate_amendment(application: Application, items: list[dict]) -> Document:
-        """Доп. соглашение об изменении цены по одному или нескольким
-        изделиям. items: [{"item_id": int, "new_price": Decimal}, ...].
-        Новые цены фиксируются в AmendmentDetail, но item.offered_price
-        меняется только после того, как клиент подпишет документ по SMS
-        (см. confirm_signature)."""
+        """Доп. соглашение об изменении цены изделий; items: [{"item_id", "new_price"}].
+        Цены в заявке меняются только после подписи клиентом (confirm_signature)."""
         document, _ = Document.objects.get_or_create(
             application=application,
             document_type=DocumentType.AMENDMENT,
@@ -233,8 +229,7 @@ class DocumentService:
             document.document_number = DocumentService._generate_document_number(document)
             document.save(update_fields=["document_number"])
 
-        # Перезаписываем целиком — повторная отправка заменяет предыдущий
-        # набор изделий/цен этого доп. соглашения.
+        # Повторная отправка заменяет прежний набор изделий
         document.amendment_details.all().delete()
         details = []
         for entry in items:
@@ -254,8 +249,7 @@ class DocumentService:
 
         context = DocumentService._build_context(application, document)
         details = list(document.amendment_details.select_related("item").order_by("item__order"))
-        # Для комиссии new_price — максимальная стоимость продажи, минимальная
-        # (сколько получит комитент) считается так же, как в договоре.
+        # У комиссии new_price — максимальная цена, минимальная считается как в договоре
         for detail in details:
             detail.new_min_price = commission_seller_gets(detail.new_price)
         context["amendment_details"] = details
@@ -340,7 +334,7 @@ class DocumentService:
                 detail.item.offered_price = detail.new_price
                 items.append(detail.item)
             ApplicationItem.objects.bulk_update(items, ["offered_price"])
-            # Перегенерируем PDF, чтобы в нём появилась отметка о подписи
+            # Чтобы в PDF появилась отметка о подписи
             DocumentService._save_amendment_pdf(document.application, document)
         elif document.document_type == DocumentType.CLOSING_REPORT:
             pass  # загруженный администратором файл, перегенерировать нечего

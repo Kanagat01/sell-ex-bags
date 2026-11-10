@@ -39,8 +39,9 @@ class CreateApplicationSerializer(serializers.Serializer):
 
     format = serializers.ChoiceField(choices=ApplicationFormat.choices)
     phone = serializers.CharField(max_length=20)
-    email = serializers.EmailField(required=False, allow_blank=True, default="")
-    trade_in_item_url = serializers.URLField(required=False, allow_blank=True, default="")
+    email = serializers.EmailField()
+    trade_in_item_url = serializers.URLField(
+        required=False, allow_blank=True, default="")
     trade_in_certificate_amount = serializers.DecimalField(
         max_digits=12, decimal_places=2, required=False, allow_null=True, default=None
     )
@@ -48,7 +49,8 @@ class CreateApplicationSerializer(serializers.Serializer):
 
     def validate_phone(self, value):
         if not re.fullmatch(r"\+7\d{10}", value):
-            raise ValidationError("Номер в формате +7XXXXXXXXXX, например +79991234567")
+            raise ValidationError(
+                "Номер в формате +7XXXXXXXXXX, например +79991234567")
         return value
 
     def validate_items_data(self, value):
@@ -145,7 +147,8 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
 
     def get_closing_report(self, obj):
         from apps.contracts.models import DocumentType
-        doc = obj.documents.filter(document_type=DocumentType.CLOSING_REPORT).first()
+        doc = obj.documents.filter(
+            document_type=DocumentType.CLOSING_REPORT).first()
         if not doc:
             return None
         return {
@@ -227,7 +230,8 @@ class OfferOptionSerializer(serializers.Serializer):
 class ApproveApplicationSerializer(serializers.Serializer):
     """Администратор одобряет заявку: один или несколько форматов на выбор
     клиенту, для каждого — суммы по изделиям"""
-    options = OfferOptionSerializer(many=True, min_length=1, max_length=len(ApplicationFormat.choices))
+    options = OfferOptionSerializer(
+        many=True, min_length=1, max_length=len(ApplicationFormat.choices))
 
     def validate_options(self, value):
         formats = [option["format"] for option in value]
@@ -257,10 +261,13 @@ class UpdateApplicationItemSerializer(serializers.ModelSerializer):
 
 class ManualItemSerializer(serializers.Serializer):
     brand = serializers.CharField(max_length=100)
-    model = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
-    size = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
+    model = serializers.CharField(
+        max_length=200, required=False, allow_blank=True, default="")
+    size = serializers.CharField(
+        max_length=50, required=False, allow_blank=True, default="")
     condition = serializers.ChoiceField(choices=ApplicationCondition.choices)
-    defects_description = serializers.CharField(required=False, allow_blank=True, default="")
+    defects_description = serializers.CharField(
+        required=False, allow_blank=True, default="")
 
 
 class ManualCreateApplicationSerializer(serializers.Serializer):
@@ -269,11 +276,16 @@ class ManualCreateApplicationSerializer(serializers.Serializer):
     формат не выбирается — его задаст предложение."""
 
     phone = serializers.CharField(max_length=20)
-    email = serializers.EmailField(required=False, allow_blank=True, default="")
-    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
-    first_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
-    middle_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
-    personal_data_id = serializers.IntegerField(required=False, allow_null=True, default=None)
+    email = serializers.EmailField(
+        required=False, allow_blank=True, default="")
+    last_name = serializers.CharField(
+        max_length=150, required=False, allow_blank=True, default="")
+    first_name = serializers.CharField(
+        max_length=150, required=False, allow_blank=True, default="")
+    middle_name = serializers.CharField(
+        max_length=150, required=False, allow_blank=True, default="")
+    personal_data_id = serializers.IntegerField(
+        required=False, allow_null=True, default=None)
     items = ManualItemSerializer(many=True, min_length=1)
 
     def validate_phone(self, value):

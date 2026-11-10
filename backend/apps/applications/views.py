@@ -30,6 +30,30 @@ from .services import ApplicationService
 logger = logging.getLogger(__name__)
 
 
+def send_sign_link(document, success_detail: str) -> Response:
+    """Ссылка на подпись документа: SMS сразу (сбой видно админу), копия на email фоном."""
+    from apps.notifications.services.sms import SmsService
+    from apps.notifications.tasks import send_sign_link_email
+
+    try:
+        SmsService.send_sign_link(
+            phone=document.application.phone,
+            document_type_display=document.get_document_type_display(),
+            sign_url=document.sign_url,
+        )
+    except Exception:
+        logger.exception("Не удалось отправить SMS со ссылкой на подписание: %s", document)
+        return Response(
+            {"detail": "Документ сформирован, но SMS со ссылкой не отправлено. Попробуйте отправить повторно."},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    document.sent_at = timezone.now()
+    document.save(update_fields=["sent_at"])
+    transaction.on_commit(lambda: send_sign_link_email.delay(document.id))
+    return Response({"detail": success_detail, "sign_token": str(document.sign_token)})
+
+
 class CreateApplicationView(APIView):
     """POST /api/applications — публичный, продавец создаёт заявку"""
 
@@ -214,7 +238,6 @@ class AdminSendActView(APIView):
 
     def post(self, request: Request, pk: int) -> Response:
         from apps.contracts.services import DocumentService
-        from apps.notifications.services.sms import SmsService
 
         act_type = request.data.get("act_type")
         if not act_type:
@@ -223,8 +246,6 @@ class AdminSendActView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        from django.conf import settings
-
         application = Application.objects.get(pk=pk)
 
         try:
@@ -232,27 +253,7 @@ class AdminSendActView(APIView):
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        sign_url = f"{settings.FRONTEND_URL}/sign/{document.sign_token}"
-        try:
-            SmsService.send_sign_link(
-                phone=application.phone,
-                document_type_display=document.get_document_type_display(),
-                sign_url=sign_url,
-            )
-        except Exception:
-            logger.exception("Не удалось отправить SMS со ссылкой на подписание акта")
-            return Response(
-                {"detail": "Акт сформирован, но SMS со ссылкой не отправлено. Попробуйте отправить повторно."},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-
-        document.sent_at = timezone.now()
-        document.save(update_fields=["sent_at"])
-
-        return Response({
-            "detail": "Акт сформирован, ссылка для подписания отправлена продавцу",
-            "sign_token": str(document.sign_token),
-        })
+        return send_sign_link(document, "Акт сформирован, ссылка для подписания отправлена продавцу")
 
 
 class AdminManualCreateApplicationView(APIView):
@@ -288,7 +289,6 @@ class AdminClientSearchView(ListAPIView):
         return q, re.sub(r"\D", "", q)
 
     def get_serializer_context(self):
-        # Чтобы в результате показать именно тот номер клиента, что совпал с запросом
         return {**super().get_serializer_context(), "phone_digits": self._query()[1]}
 
     def get_queryset(self) -> QuerySet:
@@ -300,8 +300,6 @@ class AdminClientSearchView(ListAPIView):
             return PersonalData.objects.none()
 
         filters = Q(full_name__icontains=q) | Q(inn__icontains=q)
-        # Телефон ищем по частичному совпадению цифр — не требуем полный
-        # валидный номер, чтобы находить и по "999", и по кускам номера.
         if digits:
             filters |= Q(applications__phone__icontains=digits)
 
@@ -317,9 +315,7 @@ class AdminSendAmendmentView(APIView):
 
     def post(self, request: Request, pk: int) -> Response:
         from decimal import Decimal, InvalidOperation
-        from django.conf import settings
         from apps.contracts.services import DocumentService
-        from apps.notifications.services.sms import SmsService
 
         application = Application.objects.get(pk=pk)
 
@@ -351,28 +347,7 @@ class AdminSendAmendmentView(APIView):
             items.append({"item_id": item.id, "new_price": new_price})
 
         document = DocumentService.generate_amendment(application, items)
-
-        sign_url = f"{settings.FRONTEND_URL}/sign/{document.sign_token}"
-        try:
-            SmsService.send_sign_link(
-                phone=application.phone,
-                document_type_display=document.get_document_type_display(),
-                sign_url=sign_url,
-            )
-        except Exception:
-            logger.exception("Не удалось отправить SMS со ссылкой на подписание доп. соглашения")
-            return Response(
-                {"detail": "Документ сформирован, но SMS со ссылкой не отправлено. Попробуйте отправить повторно."},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-
-        document.sent_at = timezone.now()
-        document.save(update_fields=["sent_at"])
-
-        return Response({
-            "detail": "Доп. соглашение сформировано, ссылка для подписания отправлена продавцу",
-            "sign_token": str(document.sign_token),
-        })
+        return send_sign_link(document, "Доп. соглашение сформировано, ссылка для подписания отправлена продавцу")
 
 
 class AdminSendClosingReportView(APIView):
@@ -384,9 +359,7 @@ class AdminSendClosingReportView(APIView):
     permission_classes = [IsAdminUser]
 
     def post(self, request: Request, pk: int) -> Response:
-        from django.conf import settings
         from apps.contracts.models import Document, DocumentType
-        from apps.notifications.services.sms import SmsService
 
         application = Application.objects.get(pk=pk)
         file = request.FILES.get("file")
@@ -406,27 +379,7 @@ class AdminSendClosingReportView(APIView):
         elif not document or not document.pdf_file:
             return Response({"detail": "Выберите файл отчёта"}, status=status.HTTP_400_BAD_REQUEST)
 
-        sign_url = f"{settings.FRONTEND_URL}/sign/{document.sign_token}"
-        try:
-            SmsService.send_sign_link(
-                phone=application.phone,
-                document_type_display=document.get_document_type_display(),
-                sign_url=sign_url,
-            )
-        except Exception:
-            logger.exception("Не удалось отправить SMS со ссылкой на подписание отчёта")
-            return Response(
-                {"detail": "SMS со ссылкой не отправлено. Попробуйте отправить повторно."},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-
-        document.sent_at = timezone.now()
-        document.save(update_fields=["sent_at"])
-
-        return Response({
-            "detail": "Ссылка для подписания отчёта отправлена продавцу",
-            "sign_token": str(document.sign_token),
-        })
+        return send_sign_link(document, "Ссылка для подписания отчёта отправлена продавцу")
 
 
 class AdminRequestDeliveryMethodView(APIView):
@@ -436,16 +389,15 @@ class AdminRequestDeliveryMethodView(APIView):
     permission_classes = [IsAdminUser]
 
     def post(self, request: Request, pk: int) -> Response:
-        from django.conf import settings
         from apps.delivery.services import DeliveryService
         from apps.notifications.services.sms import SmsService
+        from apps.notifications.tasks import send_delivery_link_email
 
         application = Application.objects.get(pk=pk)
         delivery_request = DeliveryService.request_method(application)
-        delivery_url = f"{settings.FRONTEND_URL}/delivery/{delivery_request.token}"
 
         try:
-            SmsService.send_delivery_request_link(phone=application.phone, delivery_url=delivery_url)
+            SmsService.send_delivery_request_link(phone=application.phone, delivery_url=delivery_request.url)
         except Exception:
             logger.exception("Не удалось отправить SMS со ссылкой на выбор способа передачи")
             return Response(
@@ -453,6 +405,7 @@ class AdminRequestDeliveryMethodView(APIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
+        transaction.on_commit(lambda: send_delivery_link_email.delay(delivery_request.id))
         return Response({
             "detail": "Ссылка на выбор способа передачи отправлена продавцу",
             "token": str(delivery_request.token),

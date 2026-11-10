@@ -43,5 +43,9 @@ class DeliveryRequest(models.Model):
     def is_expired(self) -> bool:
         return timezone.now() > self.expires_at
 
+    @property
+    def url(self) -> str:
+        return f"{settings.FRONTEND_URL}/delivery/{self.token}"
+
     def __str__(self) -> str:
         return f"Delivery request for {self.application}"

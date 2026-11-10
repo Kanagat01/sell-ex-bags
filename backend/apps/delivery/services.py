@@ -11,8 +11,7 @@ class DeliveryService:
 
     @staticmethod
     def request_method(application: Application) -> DeliveryRequest:
-        """Админ запрашивает у клиента способ передачи — создаёт (или
-        переиспользует) запрос, чтобы ссылку можно было переслать повторно."""
+        """Запрос способа передачи; повторный вызов переиспользует тот же (для пересылки ссылки)."""
         delivery_request, _ = DeliveryRequest.objects.get_or_create(application=application)
         return delivery_request
 

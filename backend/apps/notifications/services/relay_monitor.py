@@ -23,10 +23,8 @@ def _fmt_time(dt) -> str:
 
 
 class RelayMonitor:
-    """Следит за связью сайт → relay → Telegram. Запускается celery beat раз в
-    5 минут: пингует relay и досылает отложенные сообщения. Сбой дольше
-    RELAY_ALERT_AFTER_MINUTES — одно письмо об аварии; восстановление —
-    письмо с длительностью простоя. Пинги заодно сообщают relay, что сайт жив."""
+    """Следит за связью сайт → relay → Telegram (celery beat, раз в 5 минут):
+    досылает отложенные сообщения, при долгом сбое пишет на почту."""
 
     @staticmethod
     def check() -> None:
@@ -44,8 +42,7 @@ class RelayMonitor:
 
     @staticmethod
     def _flush_outbox() -> int:
-        """Досылает отложенные сообщения по порядку; на первом сбое останавливается
-        (остальные ждут следующего запуска)."""
+        """Досылает отложенные сообщения по порядку, до первого сбоя."""
         delivered = 0
         for message in TelegramOutbox.objects.order_by("created_at"):
             TelegramService.deliver(message.text)

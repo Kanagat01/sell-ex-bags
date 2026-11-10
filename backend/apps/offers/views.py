@@ -72,8 +72,7 @@ class PersonalDataView(APIView):
         if prefill:
             return Response(PersonalDataSerializer(prefill).data)
 
-        # Нет ни своих, ни чужих сохранённых данных — но если заявку создал
-        # админ вручную для нового клиента, ФИО уже известно, подставляем его
+        # Ручная заявка нового клиента: ФИО уже ввёл админ
         application = offer.application
         full_name = " ".join(filter(None, [
             application.last_name, application.first_name, application.middle_name,

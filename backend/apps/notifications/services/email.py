@@ -77,6 +77,36 @@ class EmailService:
         msg.send()
 
     @staticmethod
+    def send_sign_link(email: str, document_type_display: str, sign_url: str) -> None:
+        if not email:
+            return
+        EmailMessage(
+            subject=f"{document_type_display} — подпишите документ",
+            body=(
+                f"Добрый день!\n\n"
+                f"{document_type_display} готов к подписанию. Ознакомьтесь и подпишите по ссылке:\n"
+                f"{sign_url}\n\n"
+                f"Подписание — по коду из SMS, который придёт на ваш номер телефона."
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[email],
+        ).send()
+
+    @staticmethod
+    def send_delivery_request_link(email: str, delivery_url: str) -> None:
+        if not email:
+            return
+        EmailMessage(
+            subject="Выберите способ передачи сумки",
+            body=(
+                f"Добрый день!\n\n"
+                f"Выберите удобный способ передачи сумки по ссылке:\n{delivery_url}"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[email],
+        ).send()
+
+    @staticmethod
     def send_document_copy(email: str, pdf_path: str, document_type_display: str) -> None:
         if not email:
             return

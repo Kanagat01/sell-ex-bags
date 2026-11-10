@@ -19,8 +19,7 @@ class TelegramService:
 
     @staticmethod
     def _relay_post(path: str, payload: dict | None = None) -> None:
-        """Запрос к tg-relay (сервер, где Telegram доступен). Бросает
-        requests.RequestException, если relay недоступен или Telegram ответил ошибкой."""
+        """Запрос к tg-relay. Бросает RequestException при сбое relay или Telegram."""
         response = requests.post(
             f"{settings.TELEGRAM_RELAY_URL.rstrip('/')}{path}",
             json=payload or {},
@@ -39,10 +38,7 @@ class TelegramService:
 
     @staticmethod
     def _send(text: str) -> None:
-        """Шлёт уведомление. Если relay недоступен — сообщение не теряется:
-        кладётся в outbox и досылается RelayMonitor после восстановления, а пока
-        идёт авария (письмо о ней уже ушло) — сразу дублируется на почту.
-        Тихо пропускает, только если relay не настроен."""
+        """Шлёт уведомление; при сбое откладывает в outbox, во время аварии дублирует на почту."""
         from apps.notifications.models import RelayHealth, TelegramOutbox
         from apps.notifications.services.email import EmailService
 

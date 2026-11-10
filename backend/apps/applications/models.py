@@ -24,8 +24,7 @@ class ApplicationCondition(models.TextChoices):
 
 
 class Application(models.Model):
-    # Пусто у заявок, созданных админом вручную, — формат выбирается
-    # при отправке предложения (ApplicationService.approve / OfferService.accept)
+    # У ручных заявок пусто, пока админ не отправит предложение
     format = models.CharField(
         max_length=20,
         choices=ApplicationFormat.choices,
@@ -86,7 +85,6 @@ class ApplicationItem(models.Model):
         choices=ApplicationCondition.choices,
     )
     defects_description = models.TextField(blank=True)
-    # Необязательна: при ручном создании заявки админом её нет
     desired_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     offered_price = models.DecimalField(
         max_digits=12,

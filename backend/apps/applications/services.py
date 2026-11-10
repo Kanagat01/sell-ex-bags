@@ -12,11 +12,7 @@ class ApplicationService:
     @staticmethod
     @transaction.atomic
     def create_manual(data: dict) -> Application:
-        """Ручное создание заявки администратором (клиент обратился вне
-        платформы). Как обычная заявка, но без фото, желаемой цены и
-        формата — формат и цены админ задаёт на шаге предложения вариантов
-        сотрудничества. Уведомление о «новой заявке» не шлётся — админ,
-        создавший её, уже знает."""
+        """Заявка от админа за клиента, обратившегося вне сайта: без фото, цены и формата."""
         personal_data_id = data.get("personal_data_id")
         application = Application.objects.create(
             format="",

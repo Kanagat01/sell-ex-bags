@@ -294,8 +294,9 @@ export default function ApplicationPage() {
                 label="Email"
                 type="email"
                 placeholder="your@email.com"
-                hint="Необязательно — для уведомлений"
+                hint="Сюда придут копии предложения и документов"
                 error={errors.email?.message}
+                required
                 {...register("email")}
               />
             </div>

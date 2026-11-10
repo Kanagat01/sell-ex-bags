@@ -116,12 +116,11 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 # Расписание (сервис celery-beat в docker-compose)
 CELERY_BEAT_SCHEDULE = {
-    # Пинг relay + досылка отложенных сообщений; заодно relay видит, что сайт жив
+    # Пинги заодно сообщают relay, что сайт жив
     "watch-relay": {
         "task": "apps.notifications.tasks.watch_relay",
         "schedule": 5 * 60,
     },
-    # Ежедневная сводка в Telegram «всё работает»
     "daily-report": {
         "task": "apps.notifications.tasks.send_daily_report",
         "schedule": crontab(hour=10, minute=0),
@@ -165,7 +164,6 @@ TELEGRAM_RELAY_SECRET = env("TELEGRAM_RELAY_SECRET", default="")
 
 # Служебные письма об аварии/восстановлении связи с relay (через запятую)
 ALERT_EMAILS = env.list("ALERT_EMAILS", default=[])
-# Через сколько минут непрерывного сбоя связи с relay слать письмо об аварии
 RELAY_ALERT_AFTER_MINUTES = 60
 
 # Service-to-service secret (NestJS → Django)

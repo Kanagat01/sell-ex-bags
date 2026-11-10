@@ -256,6 +256,33 @@ def send_document_email(self, document_id: int) -> None:
 
 
 @shared_task(**CHANNEL_RETRY)
+def send_sign_link_email(self, document_id: int) -> None:
+    """Копия SMS со ссылкой на подпись — на email клиента."""
+    from apps.contracts.models import Document
+    from apps.notifications.services.email import EmailService
+
+    document = Document.objects.select_related("application").get(id=document_id)
+    EmailService.send_sign_link(
+        email=document.application.email,
+        document_type_display=document.get_document_type_display(),
+        sign_url=document.sign_url,
+    )
+
+
+@shared_task(**CHANNEL_RETRY)
+def send_delivery_link_email(self, delivery_request_id: int) -> None:
+    """Копия SMS со ссылкой на выбор способа передачи — на email клиента."""
+    from apps.delivery.models import DeliveryRequest
+    from apps.notifications.services.email import EmailService
+
+    delivery_request = DeliveryRequest.objects.select_related("application").get(id=delivery_request_id)
+    EmailService.send_delivery_request_link(
+        email=delivery_request.application.email,
+        delivery_url=delivery_request.url,
+    )
+
+
+@shared_task(**CHANNEL_RETRY)
 def send_document_telegram(self, document_id: int) -> None:
     from apps.contracts.models import Document
     from apps.notifications.services.telegram import TelegramService

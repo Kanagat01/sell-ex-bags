@@ -72,17 +72,13 @@ export default function ApplicationDetailPage() {
   const [isEditLoading, setIsEditLoading] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
 
-  // Доп. соглашение об изменении цены
   const [isAmendmentOpen, setIsAmendmentOpen] = useState(false)
-  // Выбранные изделия и новые цены: itemId -> цена
-  const [amendmentPrices, setAmendmentPrices] = useState<Record<string, string>>({})
+  const [newPriceByItemId, setNewPriceByItemId] = useState<Record<string, string>>({})
   const [isSendingAmendment, setIsSendingAmendment] = useState(false)
 
-  // Закрывающий отчёт
   const [reportFile, setReportFile] = useState<File | null>(null)
   const [isSendingReport, setIsSendingReport] = useState(false)
 
-  // Запрос способа передачи
   const [isRequestingDelivery, setIsRequestingDelivery] = useState(false)
 
   const rejectForm = useForm<RejectForm>({
@@ -158,7 +154,7 @@ export default function ApplicationDetailPage() {
 
   const handleSendAmendment = async () => {
     setActionError(null)
-    const entries = Object.entries(amendmentPrices)
+    const entries = Object.entries(newPriceByItemId)
     if (entries.length === 0) {
       setActionError("Выберите хотя бы одно изделие")
       return
@@ -173,7 +169,7 @@ export default function ApplicationDetailPage() {
         items: entries.map(([item_id, price]) => ({ item_id, new_price: Number(price) })),
       })
       setIsAmendmentOpen(false)
-      setAmendmentPrices({})
+      setNewPriceByItemId({})
       await fetchApplication()
     } catch (e: unknown) {
       setActionError(getApiError(e, "Ошибка при отправке доп. соглашения"))
@@ -802,7 +798,7 @@ export default function ApplicationDetailPage() {
         <div className="flex flex-col gap-4">
           <p className="text-sm text-neutral-500">Выберите изделия, у которых меняется цена</p>
           {application.items.filter((item) => item.offered_price).map((item) => {
-            const isSelected = item.id in amendmentPrices
+            const isSelected = item.id in newPriceByItemId
             return (
               <div key={item.id} className="flex flex-col gap-2 border-t border-neutral-100 pt-3">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -811,7 +807,7 @@ export default function ApplicationDetailPage() {
                     className="w-4 h-4 accent-black"
                     checked={isSelected}
                     onChange={(e) =>
-                      setAmendmentPrices((prev) => {
+                      setNewPriceByItemId((prev) => {
                         const next = { ...prev }
                         if (e.target.checked) next[item.id] = ""
                         else delete next[item.id]
@@ -828,8 +824,8 @@ export default function ApplicationDetailPage() {
                   <Input
                     label="Новая цена (₽)"
                     type="number"
-                    value={amendmentPrices[item.id]}
-                    onChange={(e) => setAmendmentPrices((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                    value={newPriceByItemId[item.id]}
+                    onChange={(e) => setNewPriceByItemId((prev) => ({ ...prev, [item.id]: e.target.value }))}
                     required
                   />
                 )}

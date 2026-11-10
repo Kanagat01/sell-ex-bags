@@ -1,11 +1,5 @@
-"""Telegram relay — крутится на сервере, где Telegram доступен.
-Принимает POST /notify {text} от сайта (сайт в РФ до api.telegram.org не достаёт)
-и пересылает в чат через Bot API. Защита — общий секрет в заголовке X-Secret.
-
-Заодно сторожит сайт: сайт каждые 5 минут шлёт POST /ping. Если пингов нет
-дольше SITE_SILENCE_MINUTES — одно письмо на ALERT_EMAILS; когда пинги
-возобновятся — письмо о восстановлении.
-"""
+"""Telegram relay: пересылает уведомления сайта в Telegram (сайт в РФ до Telegram не достаёт)
+и сторожит сайт по пингам — при долгой тишине пишет на почту."""
 import asyncio
 import logging
 import os
@@ -38,8 +32,7 @@ MSK = ZoneInfo("Europe/Moscow")
 
 logger = logging.getLogger("tg-relay")
 
-# Состояние в памяти: relay работает в одном процессе uvicorn. После
-# перезапуска отсчёт тишины начинается заново (ложной тревоги не будет).
+# В памяти: один процесс uvicorn; после перезапуска отсчёт тишины начинается заново
 state = {"last_ping": datetime.now(MSK), "alert_sent": False}
 
 
@@ -75,8 +68,7 @@ def send_email(subject: str, body: str) -> None:
 
 
 async def check_site_silence() -> None:
-    """Одно письмо на одну аварию: флаг ставится только после успешной отправки,
-    иначе попробуем на следующей проверке."""
+    """Одно письмо на аварию; флаг — только после успешной отправки, иначе повтор."""
     silence = datetime.now(MSK) - state["last_ping"]
     if state["alert_sent"] or silence < SITE_SILENCE:
         return

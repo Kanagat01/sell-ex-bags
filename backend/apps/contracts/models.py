@@ -1,4 +1,5 @@
 import uuid
+from django.conf import settings
 from django.db import models
 
 
@@ -28,10 +29,6 @@ class Document(models.Model):
     document_number = models.CharField(max_length=20, blank=True)
     pdf_file = models.FileField(upload_to=document_upload_path, blank=True)
 
-    # Когда клиенту отправлена ссылка на подпись. Для актов/доп. соглашения
-    # это совпадает с моментом генерации (одно действие), а для закрывающего
-    # отчёта (загрузка файла и отправка — два разных шага) это единственный
-    # способ узнать, была ли уже отправлена ссылка.
     sent_at = models.DateTimeField(null=True, blank=True)
 
     is_signed = models.BooleanField(default=False)
@@ -48,6 +45,10 @@ class Document(models.Model):
 
     def __str__(self) -> str:
         return f"{self.get_document_type_display()} — {self.application}"
+
+    @property
+    def sign_url(self) -> str:
+        return f"{settings.FRONTEND_URL}/sign/{self.sign_token}"
 
 
 class AmendmentDetail(models.Model):

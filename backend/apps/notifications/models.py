@@ -2,8 +2,7 @@ from django.db import models
 
 
 class TelegramOutbox(models.Model):
-    """Telegram-сообщения, которые не удалось доставить через relay.
-    Досылаются RelayMonitor, как только relay снова доступен."""
+    """Недоставленные Telegram-сообщения; досылает RelayMonitor."""
 
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -16,9 +15,7 @@ class TelegramOutbox(models.Model):
 
 
 class RelayHealth(models.Model):
-    """Состояние связи с relay — всегда одна запись (pk=1).
-    failing_since — начало текущей серии сбоев, alert_sent — письмо об аварии
-    по этой серии уже отправлено (чтобы не слать его каждые 5 минут)."""
+    """Состояние связи с relay — одна запись (pk=1): начало текущего сбоя и отправлено ли письмо."""
 
     failing_since = models.DateTimeField(null=True, blank=True)
     alert_sent = models.BooleanField(default=False)

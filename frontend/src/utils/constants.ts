@@ -146,7 +146,6 @@ export const DELIVERY_METHOD_LABELS: Record<DeliveryMethod, string> = {
   [DeliveryMethod.CDEK]: "Курьерской службой СДЭК",
 };
 
-// Фиксированные бизнес-данные (не меняются из админки)
 export const BOUTIQUE_ADDRESS = "г. Москва, ул. Малая Бронная, 28";
 export const BOUTIQUE_HOURS = "ежедневно с 11 до 22";
 export const COURIER_REGION_FEE = 500;
