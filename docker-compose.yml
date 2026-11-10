@@ -44,6 +44,20 @@ services:
       - ./backend/manage.py:/app/manage.py
       - media_files:/app/media
     command: uv run celery -A config worker -l info --uid=nobody
+  celery-beat:
+    build: ./backend
+    restart: always
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/apps:/app/apps
+      - ./backend/config:/app/config
+      - ./backend/manage.py:/app/manage.py
+    # Планировщик: пинг relay каждые 5 мин и ежедневная сводка (CELERY_BEAT_SCHEDULE)
+    command: uv run celery -A config beat -l info -s /tmp/celerybeat-schedule
   frontend:
     build: ./frontend
     restart: always

@@ -1,6 +1,7 @@
 from datetime import timedelta
 import environ
 from pathlib import Path
+from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -112,6 +113,20 @@ CELERY_BROKER_URL = env("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = env("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+# Расписание (сервис celery-beat в docker-compose)
+CELERY_BEAT_SCHEDULE = {
+    # Пинг relay + досылка отложенных сообщений; заодно relay видит, что сайт жив
+    "watch-relay": {
+        "task": "apps.notifications.tasks.watch_relay",
+        "schedule": 5 * 60,
+    },
+    # Ежедневная сводка в Telegram «всё работает»
+    "daily-report": {
+        "task": "apps.notifications.tasks.send_daily_report",
+        "schedule": crontab(hour=10, minute=0),
+    },
+}
 
 # SMS (SMSAero)
 SMSAERO_EMAIL = env("SMSAERO_EMAIL", default="")
@@ -147,6 +162,11 @@ SMS_CODE_MAX_SENDS_PER_DAY = 3
 # где Telegram доступен. Токен/чат живут на релее, здесь их больше нет.
 TELEGRAM_RELAY_URL = env("TELEGRAM_RELAY_URL", default="")
 TELEGRAM_RELAY_SECRET = env("TELEGRAM_RELAY_SECRET", default="")
+
+# Служебные письма об аварии/восстановлении связи с relay (через запятую)
+ALERT_EMAILS = env.list("ALERT_EMAILS", default=[])
+# Через сколько минут непрерывного сбоя связи с relay слать письмо об аварии
+RELAY_ALERT_AFTER_MINUTES = 60
 
 # Service-to-service secret (NestJS → Django)
 SELL_SERVICE_SECRET = env("SELL_SERVICE_SECRET", default="")

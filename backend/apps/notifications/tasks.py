@@ -280,3 +280,19 @@ def send_delivery_telegram(self, delivery_request_id: int) -> None:
 
     delivery_request = DeliveryRequest.objects.select_related("application").get(id=delivery_request_id)
     TelegramService.send_delivery_method_chosen(delivery_request)
+
+
+# ==================== Периодические (celery beat, CELERY_BEAT_SCHEDULE) ====================
+
+@shared_task
+def watch_relay() -> None:
+    from apps.notifications.services.relay_monitor import RelayMonitor
+
+    RelayMonitor.check()
+
+
+@shared_task
+def send_daily_report() -> None:
+    from apps.notifications.services.telegram import TelegramService
+
+    TelegramService.send_daily_report()

@@ -1,32 +1,76 @@
 import html
 import logging
+import re
+from datetime import timedelta
+
 import requests
 from django.conf import settings
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+
+def html_to_plain(text: str) -> str:
+    """Текст Telegram-сообщения (HTML-разметка) → обычный текст для письма"""
+    return html.unescape(re.sub(r"<[^>]+>", "", text))
 
 
 class TelegramService:
 
     @staticmethod
-    def _send(text: str) -> None:
-        """Шлёт уведомление через tg-relay (на сервере, где Telegram доступен).
-        Бросает исключение при сбое — celery-задача повторит по retry.
-        Тихо пропускает, только если релей не настроен."""
-        relay_url = getattr(settings, "TELEGRAM_RELAY_URL", "")
-        relay_secret = getattr(settings, "TELEGRAM_RELAY_SECRET", "")
-
-        if not relay_url:
-            logger.warning("TELEGRAM_RELAY_URL не задан — уведомление в Telegram пропущено")
-            return
-
+    def _relay_post(path: str, payload: dict | None = None) -> None:
+        """Запрос к tg-relay (сервер, где Telegram доступен). Бросает
+        requests.RequestException, если relay недоступен или Telegram ответил ошибкой."""
         response = requests.post(
-            f"{relay_url.rstrip('/')}/notify",
-            json={"text": text},
-            headers={"X-Secret": relay_secret},
+            f"{settings.TELEGRAM_RELAY_URL.rstrip('/')}{path}",
+            json=payload or {},
+            headers={"X-Secret": settings.TELEGRAM_RELAY_SECRET},
             timeout=10,
         )
         response.raise_for_status()
+
+    @staticmethod
+    def deliver(text: str) -> None:
+        TelegramService._relay_post("/notify", {"text": text})
+
+    @staticmethod
+    def ping() -> None:
+        TelegramService._relay_post("/ping")
+
+    @staticmethod
+    def _send(text: str) -> None:
+        """Шлёт уведомление. Если relay недоступен — сообщение не теряется:
+        кладётся в outbox и досылается RelayMonitor после восстановления, а пока
+        идёт авария (письмо о ней уже ушло) — сразу дублируется на почту.
+        Тихо пропускает, только если relay не настроен."""
+        from apps.notifications.models import RelayHealth, TelegramOutbox
+        from apps.notifications.services.email import EmailService
+
+        if not settings.TELEGRAM_RELAY_URL:
+            logger.warning("TELEGRAM_RELAY_URL не задан — уведомление в Telegram пропущено")
+            return
+
+        try:
+            TelegramService.deliver(text)
+        except requests.RequestException:
+            logger.exception("Не удалось доставить через relay (relay или Telegram) — сообщение отложено в outbox")
+            TelegramOutbox.objects.create(text=text)
+            if RelayHealth.get().alert_sent:
+                EmailService.send_alert("Уведомление (Telegram недоступен)", html_to_plain(text))
+
+    @staticmethod
+    def send_daily_report() -> None:
+        from apps.applications.models import Application
+        from apps.contracts.models import Document
+
+        since = timezone.now() - timedelta(days=1)
+        new_count = Application.objects.filter(created_at__gte=since).count()
+        signed_count = Document.objects.filter(signed_at__gte=since).count()
+        text = (
+            "<b>✅ Всё работает</b>\n\n"
+            f"За сутки: новых заявок — {new_count}, подписанных документов — {signed_count}"
+        )
+        TelegramService._send(text)
 
     @staticmethod
     def send_new_application(application) -> None:

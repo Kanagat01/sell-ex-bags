@@ -9,6 +9,19 @@ logger = logging.getLogger(__name__)
 class EmailService:
 
     @staticmethod
+    def send_alert(subject: str, body: str) -> None:
+        """Служебное письмо (авария/восстановление связи) на ALERT_EMAILS"""
+        if not settings.ALERT_EMAILS:
+            logger.warning("ALERT_EMAILS не задан — служебное письмо «%s» не отправлено", subject)
+            return
+        EmailMessage(
+            subject=f"[sell.ex-bags] {subject}",
+            body=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=settings.ALERT_EMAILS,
+        ).send()
+
+    @staticmethod
     def send_offer_notification(
         email: str, short_label: str, offer_text: str, offer_url: str
     ) -> None:

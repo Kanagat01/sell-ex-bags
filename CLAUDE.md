@@ -63,8 +63,12 @@
   при удалении записей — Django сам файлы не трёт.
 - SMS — через `smsaero-api` (`SmsService`). Подписание документов — SMS-код (планируется
   переход на Mobile ID).
-- Уведомления — celery-задачи с retry (fan-out по каналам); сервисы email/sms/telegram
-  ошибки НЕ глотают (бросают → retry).
+- Уведомления — celery-задачи с retry (fan-out по каналам); сервисы email/sms ошибки
+  НЕ глотают (бросают → retry). Telegram при недоступном relay кладёт сообщение в
+  outbox (`TelegramOutbox`), его досылает `RelayMonitor` — ничего не теряется.
+- `celery-beat` (сервис в docker-compose, `CELERY_BEAT_SCHEDULE`): каждые 5 мин
+  `watch_relay` (пинг relay + досылка outbox; сбой > часа → письмо на `ALERT_EMAILS`),
+  в 10:00 МСК — сводка в Telegram. Relay в ответ сторожит сайт: нет пингов > часа → письмо.
 
 ## Команды в контейнере
 

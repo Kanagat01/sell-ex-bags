@@ -16,12 +16,21 @@
 - `GET /health` → `{"ok": true}`
 - `POST /notify` (заголовок `X-Secret: <RELAY_SECRET>`), тело `{"text": "..."}` →
   `sendMessage` в `TELEGRAM_CHAT_ID`. 401 — неверный секрет, 502 — ошибка Telegram
-  (сайт повторит по celery-retry).
+  (сайт отложит сообщение и дошлёт позже).
+- `POST /ping` (заголовок `X-Secret`) — сайт каждые 5 минут сообщает, что жив.
+
+## Взаимный мониторинг
+- **Relay сторожит сайт:** нет пингов дольше `SITE_SILENCE_MINUTES` (по умолчанию 60) →
+  одно письмо на `ALERT_EMAILS`; пинги возобновились → письмо о восстановлении.
+- **Сайт сторожит relay:** relay/Telegram недоступен дольше часа → письмо с сайта на его
+  `ALERT_EMAILS`. Уведомления за это время не теряются: копятся у сайта, дублируются на
+  почту и досылаются в Telegram после восстановления.
+- В 10:00 по Москве сайт шлёт в чат ежедневную сводку «всё работает».
 
 ## Деплой (на втором сервере)
 Предварительно: **A-запись `RELAY_DOMAIN` → IP сервера**, открыты порты **80 и 443**.
 ```bash
-cp .env.example .env     # заполнить RELAY_DOMAIN, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, RELAY_SECRET
+cp .env.example .env     # заполнить RELAY_DOMAIN, TELEGRAM_*, RELAY_SECRET, ALERT_EMAILS, SMTP_*
 docker compose up -d --build
 docker compose logs -f caddy      # дождаться выпуска сертификата (certificate obtained)
 ```
@@ -38,7 +47,9 @@ curl -X POST https://<RELAY_DOMAIN>/notify \
 ```
 TELEGRAM_RELAY_URL=https://<RELAY_DOMAIN>
 TELEGRAM_RELAY_SECRET=<тот же RELAY_SECRET>
+ALERT_EMAILS=admin1@example.com,admin2@example.com
 ```
+и должен быть запущен сервис `celery-beat` (есть в docker-compose сайта).
 
 ## Если на сервере релея уже есть nginx (вместо Caddy)
 Убери сервис `caddy` из compose, верни релею `ports: ["127.0.0.1:8080:8080"]`, и
