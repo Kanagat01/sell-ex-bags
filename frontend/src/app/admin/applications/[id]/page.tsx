@@ -333,40 +333,40 @@ export default function ApplicationDetailPage() {
               </div>
               {item.photos.length > 0 && <PhotoGallery photos={item.photos} />}
               <div className="grid grid-cols-2 gap-y-3 text-sm">
-                  <span className="text-neutral-500">Бренд</span>
-                  <span>{item.brand}</span>
-                  {item.model && (
-                    <>
-                      <span className="text-neutral-500">Модель</span>
-                      <span>{item.model}</span>
-                    </>
-                  )}
-                  {item.size && (
-                    <>
-                      <span className="text-neutral-500">Размер</span>
-                      <span>{item.size}</span>
-                    </>
-                  )}
-                  <span className="text-neutral-500">Состояние</span>
-                  <span>{CONDITION_LABELS[item.condition]}</span>
-                  {item.defects_description && (
-                    <>
-                      <span className="text-neutral-500">Изъяны</span>
-                      <span>{item.defects_description}</span>
-                    </>
-                  )}
-                  {item.desired_price && (
-                    <>
-                      <span className="text-neutral-500">Желаемая цена</span>
-                      <span>{formatPrice(item.desired_price)}</span>
-                    </>
-                  )}
-                  {item.offered_price && (
-                    <>
-                      <span className="text-neutral-500">Предложенная цена</span>
-                      <span className="font-medium">{formatPrice(item.offered_price)}</span>
-                    </>
-                  )}
+                <span className="text-neutral-500">Бренд</span>
+                <span>{item.brand}</span>
+                {item.model && (
+                  <>
+                    <span className="text-neutral-500">Модель</span>
+                    <span>{item.model}</span>
+                  </>
+                )}
+                {item.size && (
+                  <>
+                    <span className="text-neutral-500">Размер</span>
+                    <span>{item.size}</span>
+                  </>
+                )}
+                <span className="text-neutral-500">Состояние</span>
+                <span>{CONDITION_LABELS[item.condition]}</span>
+                {item.defects_description && (
+                  <>
+                    <span className="text-neutral-500">Изъяны</span>
+                    <span>{item.defects_description}</span>
+                  </>
+                )}
+                {item.desired_price && (
+                  <>
+                    <span className="text-neutral-500">Желаемая цена</span>
+                    <span>{formatPrice(item.desired_price)}</span>
+                  </>
+                )}
+                {item.offered_price && (
+                  <>
+                    <span className="text-neutral-500">Предложенная цена</span>
+                    <span className="font-medium">{formatPrice(item.offered_price)}</span>
+                  </>
+                )}
               </div>
             </div>
           ))}
@@ -397,7 +397,7 @@ export default function ApplicationDetailPage() {
                   readOnly
                   value={application.offer_link.url}
                   onFocus={(e) => e.target.select()}
-                  className="flex-1 min-w-0 border-[0.8px] border-black rounded-[8px] px-3 py-2 text-sm"
+                  className="flex-1 min-w-0 border-[0.8px] border-black rounded-lg px-3 py-2 text-sm"
                 />
                 <Button variant="secondary" onClick={() => copyOfferLink(application.offer_link!.url)}>
                   {isLinkCopied ? "Скопировано" : "Скопировать"}

@@ -3,13 +3,15 @@ set -e  # Останавливаем скрипт при любой ошибке
 
 echo "🚀 Starting Django application..."
 
-# Применяем миграции
-echo "Applying database migrations..."
-uv run python manage.py migrate --noinput
+# celery и celery-beat пропускают: миграции и статику делает только backend,
+# иначе контейнеры одновременно применяют одни и те же миграции
+if [ -z "$SKIP_DJANGO_SETUP" ]; then
+    echo "Applying database migrations..."
+    uv run python manage.py migrate --noinput
 
-# Собираем статические файлы
-echo "Collecting static files..."
-uv run python manage.py collectstatic --noinput --clear
+    echo "Collecting static files..."
+    uv run python manage.py collectstatic --noinput --clear
+fi
 
 # Опционально: можно добавить создание суперюзера (только в dev)
 # if [ "$DJANGO_SUPERUSER_CREATE" = "true" ]; then

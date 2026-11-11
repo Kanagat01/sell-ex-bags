@@ -29,15 +29,28 @@ services:
       - ./backend/manage.py:/app/manage.py
       - media_files:/app/media
       - static_files:/app/staticfiles
+    # Здоров, когда отвечает по HTTP (любой код) — значит, миграции применены и gunicorn поднят
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as r, urllib.error as e\ntry: r.urlopen('http://localhost:8000/', timeout=5)\nexcept e.HTTPError: pass"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 300s
 
   celery:
     build: ./backend
     restart: always
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+      backend:
+        condition: service_healthy
     env_file:
       - ./backend/.env
+    environment:
+      SKIP_DJANGO_SETUP: "1"
     volumes:
       - ./backend/apps:/app/apps
       - ./backend/config:/app/config
@@ -48,10 +61,16 @@ services:
     build: ./backend
     restart: always
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+      backend:
+        condition: service_healthy
     env_file:
       - ./backend/.env
+    environment:
+      SKIP_DJANGO_SETUP: "1"
     volumes:
       - ./backend/apps:/app/apps
       - ./backend/config:/app/config
